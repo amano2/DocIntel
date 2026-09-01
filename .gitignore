@@ -1,0 +1,65 @@
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.class
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env/
+ENV/
+
+# ── Secrets / Credentials ──────────────────────────────────────
+.env
+.env.*
+!.env.example
+secrets.json
+*.key
+
+# ── SQLite Database ─────────────────────────────────────────────
+db/*.db
+db/*.db-shm
+db/*.db-wal
+*.sqlite
+*.sqlite3
+
+# ── FAISS Vector Index ──────────────────────────────────────────
+data/faiss_index/
+*.index
+*.faiss
+
+# ── Uploaded / Sample Documents (large files) ──────────────────
+data/uploads/
+data/sample_docs/
+!data/sample_docs/.gitkeep
+
+# ── Frontend ────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ── OS / Editor ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# ── Test / Coverage ─────────────────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage
+
+# ── Misc ────────────────────────────────────────────────────────
+*.log
+*.tmp
+*.bak
