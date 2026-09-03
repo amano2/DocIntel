@@ -24,6 +24,7 @@ secrets.json
 GEMINI.md
 skills-lock.json
 .agents/
+ARCHITECTURE_AND_DESIGN.md
 
 # ── SQLite Database ─────────────────────────────────────────────
 db/*.db
