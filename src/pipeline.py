@@ -11,7 +11,7 @@ Orchestrates the complete multimodal processing lifecycle:
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 import json
 
 from src.ingest import ingest_document, IngestedDocument
@@ -28,7 +28,8 @@ def process_document(
     doc_id: Optional[str] = None,
     db: Optional[Database] = None,
     vector_index: Optional[VectorIndex] = None,
-    llm_service: Optional[OpenRouterService] = None
+    llm_service: Optional[OpenRouterService] = None,
+    progress_callback: Optional[Callable[[str, float, str], None]] = None
 ) -> Dict[str, Any]:
     """
     Executes the end-to-end multimodal processing pipeline for a single document.
@@ -39,21 +40,32 @@ def process_document(
         db: Database instance.
         vector_index: VectorIndex instance.
         llm_service: OpenRouterService instance.
+        progress_callback: Optional callback receiving (stage, progress_float, message).
         
     Returns:
         Dictionary containing doc_id, filename, doc_type, fields, anomalies, and confidence.
     """
+    def emit(stage: str, progress: float, msg: str):
+        if progress_callback:
+            try:
+                progress_callback(stage, progress, msg)
+            except Exception:
+                pass
+
     database = db or default_db
     v_idx = vector_index or default_vector_index
     service = llm_service or default_openrouter_service
     
     # 1. Ingestion
+    emit("INGESTING", 0.15, "Extracting text layer and rasterizing visual pages...")
     ingested_doc = ingest_document(file_path=file_path, doc_id=doc_id)
     
     # 2. Classification
+    emit("CLASSIFYING", 0.35, "Categorizing document type via Multimodal Router...")
     classification = classify_document(doc=ingested_doc, llm_service=service)
     
     # 3. Structured Extraction
+    emit("EXTRACTING", 0.60, f"Extracting structured {classification.doc_type} fields with confidence scoring...")
     extraction = extract_structured_data(
         doc=ingested_doc,
         doc_type=classification.doc_type,
@@ -61,6 +73,7 @@ def process_document(
     )
     
     # 4. Anomaly Detection
+    emit("ANOMALY_DETECTION", 0.80, "Executing deterministic math invariants & security checks...")
     existing_invoices = database.list_all_invoices()
     anomalies = detect_anomalies(
         doc_id=ingested_doc.doc_id,
@@ -72,6 +85,7 @@ def process_document(
     )
     
     # 5. Database Persistence (Audit Trail)
+    emit("INDEXING", 0.92, "Persisting audit ledger and generating FAISS vector embeddings...")
     database.insert_document(
         doc_id=ingested_doc.doc_id,
         filename=ingested_doc.filename,
@@ -98,6 +112,8 @@ def process_document(
         fields_summary=fields_summary
     )
     
+    emit("COMPLETED", 1.0, f"Successfully processed {ingested_doc.filename} ({len(anomalies)} anomalies flagged).")
+    
     return {
         "doc_id": ingested_doc.doc_id,
         "filename": ingested_doc.filename,
@@ -110,3 +126,4 @@ def process_document(
         "anomalies": [a.to_dict() for a in anomalies],
         "status": extraction.status
     }
+

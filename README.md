@@ -139,16 +139,19 @@ OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 ```
 
-### 4. Run the Streamlit SaaS Dashboard
+### 4. Run the Enterprise FastAPI Backend Server
 ```powershell
-streamlit run app/streamlit_app.py
+python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
+*Interactive Swagger API documentation available at `http://127.0.0.1:8000/docs`.*
 
-### 5. Run the FastAPI Backend Server
+### 5. Run the Enterprise React + Vite SaaS Client
 ```powershell
-uvicorn api.main:app --host 127.0.0.1 --port 8000
+cd frontend
+npm install
+npm run dev
 ```
-*API documentation available at `http://127.0.0.1:8000/docs`.*
+*Modern SaaS Application available at `http://localhost:5173/`.*
 
 ---
 

@@ -108,9 +108,10 @@ class VectorIndex:
         
         return len(chunks)
 
-    def search(self, query: str, top_k: int = 4) -> List[Dict[str, Any]]:
+    def search(self, query: str, top_k: int = 4, doc_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Performs semantic vector search across the indexed document chunks.
+        Supports filtering by specific doc_ids for document comparison mode.
         
         Returns:
             List of matching chunks with similarity scores and source metadata.
@@ -119,14 +120,20 @@ class VectorIndex:
             return []
 
         query_emb = self.encoder.encode([query], convert_to_numpy=True, normalize_embeddings=True)
-        scores, indices = self.index.search(query_emb.astype(np.float32), min(top_k, self.index.ntotal))
+        fetch_k = min(self.index.ntotal, top_k * 6 if doc_ids else top_k)
+        scores, indices = self.index.search(query_emb.astype(np.float32), fetch_k)
 
+        target_ids = set(doc_ids) if doc_ids else None
         results = []
         for score, idx in zip(scores[0], indices[0]):
             if idx >= 0 and idx < len(self.metadata):
                 item = dict(self.metadata[idx])
+                if target_ids is not None and item.get("doc_id") not in target_ids:
+                    continue
                 item["similarity_score"] = float(score)
                 results.append(item)
+                if len(results) >= top_k:
+                    break
 
         return results
 

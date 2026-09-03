@@ -15,12 +15,15 @@ env/
 .env/
 ENV/
 
-# ── Secrets / Credentials ──────────────────────────────────────
+# ── Secrets / Credentials & Confidential Configs ──────────────
 .env
 .env.*
-!.env.example
+.env.example
 secrets.json
 *.key
+GEMINI.md
+skills-lock.json
+.agents/
 
 # ── SQLite Database ─────────────────────────────────────────────
 db/*.db

@@ -19,7 +19,7 @@ import {
  * - Safe inner radius (56px) + stacked 2-line category labels so text NEVER overflows
  * - Dynamic cursor-adjacent hover tooltip with automatic collision handling
  */
-export function BklitAnomalyDonutChart({ data = {}, totalAnomalies = 19, filter = 'all' }) {
+export function BklitAnomalyDonutChart({ data = {}, totalAnomalies = 19, filter = 'all', onSegmentClick = null }) {
   const [activeIndex, setActiveIndex] = useState(null);
 
   const rawData = [
@@ -68,12 +68,13 @@ export function BklitAnomalyDonutChart({ data = {}, totalAnomalies = 19, filter 
                   key={`donut-cell-${index}`}
                   fill={entry.fill}
                   opacity={isFaded ? 0.35 : 1}
+                  onClick={() => onSegmentClick && onSegmentClick(entry.key)}
                   style={{
                     filter: isHovered ? 'brightness(1.15) drop-shadow(0 0 8px rgba(255,255,255,0.25))' : 'none',
                     transform: isHovered ? 'scale(1.04)' : 'scale(1)',
                     transformOrigin: 'center center',
                     transition: 'all 0.2s ease-out',
-                    cursor: 'pointer'
+                    cursor: onSegmentClick ? 'pointer' : 'default'
                   }}
                 />
               );

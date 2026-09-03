@@ -13,47 +13,100 @@ import {
   Eye, 
   Search, 
   Filter, 
-  Sparkles,
+  Sparkles, 
   RefreshCw,
-  Maximize2
+  Maximize2,
+  ChevronDown
 } from 'lucide-react';
 import { fetchDocuments, fetchDocumentDetails, correctField, uploadDocument, getDocumentPreviewUrl } from '../api';
+import { useToast } from './ToastProvider';
+import UploadProgressModal from './UploadProgressModal';
 
-export default function Review({ selectedDocId, setSelectedDocId }) {
+export default function Review({ selectedDocId, setSelectedDocId, anomalyFilterPreset = null }) {
+  const toast = useToast();
   const [documents, setDocuments] = useState([]);
   const [activeDoc, setActiveDoc] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [filterLowConf, setFilterLowConf] = useState(false);
   const [anomalyFilter, setAnomalyFilter] = useState('all');
   const [docSearch, setDocSearch] = useState('');
   
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   // Field editing state
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [savingField, setSavingField] = useState(false);
 
+  // Asynchronous Upload Progress Modal
+  const [uploadModal, setUploadModal] = useState({
+    isOpen: false,
+    jobId: null,
+    filename: ''
+  });
+
   const fileInputRef = useRef(null);
 
+  // Sync anomalyFilterPreset if passed from Dashboard drill-down
+  useEffect(() => {
+    if (anomalyFilterPreset) {
+      setAnomalyFilter(anomalyFilterPreset);
+    }
+  }, [anomalyFilterPreset]);
+
   // Load documents
-  const loadDocs = async (targetId = null) => {
+  const loadDocs = async (targetId = null, targetPage = 1, append = false) => {
     try {
-      const data = await fetchDocuments();
+      const data = await fetchDocuments({ page: targetPage, limit: 50, search: docSearch });
       const docs = data.documents || [];
-      setDocuments(docs);
-      
-      const toSelect = targetId || selectedDocId || (docs.length > 0 ? docs[0].doc_id : null);
-      if (toSelect) {
-        selectDoc(toSelect);
+      setTotalCount(data.total_count || docs.length);
+      setHasMore(Boolean(data.has_more));
+      setPage(targetPage);
+
+      if (append) {
+        setDocuments((prev) => [...prev, ...docs]);
+      } else {
+        setDocuments(docs);
+        const toSelect = targetId || selectedDocId || (docs.length > 0 ? docs[0].doc_id : null);
+        if (toSelect) {
+          selectDoc(toSelect);
+        }
       }
     } catch (err) {
       console.error('Error loading documents:', err);
+      toast.error('Could not load document catalog', 'Network Error');
     }
   };
 
   useEffect(() => {
-    loadDocs(selectedDocId);
-  }, [selectedDocId]);
+    loadDocs(selectedDocId, 1, false);
+  }, [selectedDocId, docSearch]);
+
+  // Arrow key navigation between documents
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const currentIndex = documents.findIndex((d) => d.doc_id === activeDoc?.doc_id);
+        if (currentIndex !== -1 && currentIndex < documents.length - 1) {
+          selectDoc(documents[currentIndex + 1].doc_id);
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const currentIndex = documents.findIndex((d) => d.doc_id === activeDoc?.doc_id);
+        if (currentIndex > 0) {
+          selectDoc(documents[currentIndex - 1].doc_id);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [documents, activeDoc]);
 
   const selectDoc = async (id) => {
     setSelectedDocId(id);
@@ -63,6 +116,7 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
       setActiveDoc(details);
     } catch (err) {
       console.error('Error fetching doc details:', err);
+      toast.error('Failed to retrieve document metadata and audit records', 'Error');
     } finally {
       setLoading(false);
     }
@@ -72,16 +126,39 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
     try {
       const res = await uploadDocument(file);
-      const newDocId = res.document?.doc_id;
-      await loadDocs(newDocId);
+      if (res.job_id) {
+        setUploadModal({
+          isOpen: true,
+          jobId: res.job_id,
+          filename: file.name
+        });
+      } else {
+        const newDocId = res.document?.doc_id;
+        await loadDocs(newDocId, 1, false);
+        toast.success(`Document "${file.name}" processed successfully!`, 'Upload Complete');
+      }
     } catch (err) {
-      alert(`Upload failed: ${err.message}`);
+      toast.error(err.message, 'Upload Failed');
     } finally {
-      setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUploadComplete = async (newDocId) => {
+    setUploadModal({ isOpen: false, jobId: null, filename: '' });
+    await loadDocs(newDocId, 1, false);
+    toast.success('Document pipeline complete & indexed in vector knowledge base!', 'Extraction Succeeded');
+  };
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      await loadDocs(null, page + 1, true);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -90,12 +167,12 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
     setSavingField(true);
     try {
       await correctField(activeDoc.doc_id, fieldName, editValue);
-      // Reload active document
+      toast.success(`Field "${fieldName.replace(/_/g, ' ')}" updated in compliance audit trail.`, 'Correction Saved');
       await selectDoc(activeDoc.doc_id);
       setEditingField(null);
       setEditValue('');
     } catch (err) {
-      alert(`Failed to save correction: ${err.message}`);
+      toast.error(err.message, 'Correction Failed');
     } finally {
       setSavingField(false);
     }
@@ -109,6 +186,7 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
     a.href = url;
     a.download = `${activeDoc.filename || 'document'}_extracted.json`;
     a.click();
+    toast.info(`Downloaded extraction manifest for ${activeDoc.filename}`, 'JSON Export');
   };
 
   // Filtered documents list
@@ -166,7 +244,7 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
             />
             <UploadCloud size={24} color="var(--brand-blue)" style={{ margin: '0 auto 8px' }} />
             <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
-              {uploading ? 'Processing with AI...' : 'Upload Document'}
+              {uploadModal.isOpen ? 'Processing with AI...' : 'Upload Document'}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
               PDF or scanned image
@@ -231,6 +309,23 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
                 </div>
               );
             })}
+
+            {hasMore && (
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="btn-secondary"
+                style={{
+                  width: '100%',
+                  marginTop: '10px',
+                  padding: '8px',
+                  fontSize: '12px',
+                  justifyContent: 'center',
+                }}
+              >
+                {loadingMore ? 'Loading more...' : `Load more (${totalCount - documents.length} remaining)`}
+              </button>
+            )}
           </div>
         </div>
 
@@ -579,6 +674,15 @@ export default function Review({ selectedDocId, setSelectedDocId }) {
         </div>
 
       </div>
+
+      {/* Real-Time Asynchronous Pipeline Modal */}
+      <UploadProgressModal
+        isOpen={uploadModal.isOpen}
+        jobId={uploadModal.jobId}
+        filename={uploadModal.filename}
+        onComplete={handleUploadComplete}
+        onClose={() => setUploadModal({ isOpen: false, jobId: null, filename: '' })}
+      />
     </div>
   );
 }

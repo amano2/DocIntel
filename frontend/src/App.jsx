@@ -3,14 +3,16 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import Review from './components/Review';
 import Ask from './components/Ask';
-import { fetchDashboardStats, uploadDocument } from './api';
+import { fetchDashboardStats, getExportAllUrl } from './api';
+import { useToast } from './components/ToastProvider';
 
 export default function App() {
-  // Default landing page is dashboard per user requirement
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [theme, setTheme] = useState(() => localStorage.getItem('docintel_theme') || 'light');
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [stats, setStats] = useState(null);
+  const [anomalyFilterPreset, setAnomalyFilterPreset] = useState(null);
 
   // Apply theme to HTML root element
   useEffect(() => {
@@ -21,6 +23,21 @@ export default function App() {
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
+
+  // Global hotkeys (Ctrl/Cmd + K, Escape)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setActiveTab('ask');
+        toast.info('Cross-document Q&A studio activated (⌘K)', 'Shortcut');
+      } else if (e.key === 'Escape') {
+        setAnomalyFilterPreset(null);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [toast]);
 
   // Load dashboard statistics
   const loadStats = async () => {
@@ -43,13 +60,14 @@ export default function App() {
   };
 
   const handleGlobalExport = () => {
-    if (!stats) return;
-    const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    toast.info('Compiling batch export archive (JSON manifests + CSV audit summary)...', 'Export Started');
+    const exportUrl = getExportAllUrl();
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `docintel_telemetry_${new Date().toISOString().slice(0, 10)}.json`;
+    a.href = exportUrl;
+    a.download = `docintel_enterprise_export_${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -69,6 +87,7 @@ export default function App() {
             stats={stats}
             onSelectDocument={setSelectedDocId}
             onSwitchTab={setActiveTab}
+            onSetAnomalyFilter={setAnomalyFilterPreset}
           />
         )}
 
@@ -76,6 +95,7 @@ export default function App() {
           <Review
             selectedDocId={selectedDocId}
             setSelectedDocId={setSelectedDocId}
+            anomalyFilterPreset={anomalyFilterPreset}
           />
         )}
 

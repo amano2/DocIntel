@@ -69,31 +69,52 @@ Rules:
 """
 
 
+RAG_COMPARE_PROMPT_TEMPLATE = """
+You are a senior Corporate Legal and Financial Operations Analyst performing a side-by-side comparative analysis of enterprise documents.
+Compare the provided documents specifically regarding the user's query.
+
+Rules:
+1. Provide a clear, formatted comparison (use Markdown tables or bulleted sections) contrasting Document A vs Document B.
+2. Highlight specific variances: payment terms, total pricing, liabilities, termination clauses, compliance deadlines, or signatories.
+3. Explicitly cite each document by name (e.g. "[Source: contract_01_standard_nda.pdf]").
+4. End with an "Executive Summary of Variances & Risk Delta".
+
+=== DOCUMENT CONTEXT SNIPPETS ===
+{context}
+
+=== USER COMPARISON QUERY ===
+{query}
+"""
+
+
 def answer_document_query(
     query: str,
     top_k: int = 4,
     vector_index: Optional[VectorIndex] = None,
     db: Optional[Database] = None,
-    llm_service: Optional[OpenRouterService] = None
+    llm_service: Optional[OpenRouterService] = None,
+    doc_ids: Optional[List[str]] = None,
+    compare_mode: bool = False
 ) -> RAGAnswer:
     """
     Answers a natural-language query over the indexed document repository.
     Combines semantic FAISS search with SQL database aggregation for exact math.
+    Supports multi-document comparison mode and document-scoped filtering.
     """
     v_idx = vector_index or default_vector_index
     database = db or default_db
     service = llm_service or default_openrouter_service
     
-    # 1. Semantic search
-    matches = v_idx.search(query=query, top_k=top_k)
+    # 1. Semantic search (with optional doc_ids filter)
+    matches = v_idx.search(query=query, top_k=top_k * 2 if compare_mode else top_k, doc_ids=doc_ids)
     
     # 2. Database Aggregations for Financial / Count Queries
-    db_summary = _build_database_summary(query, database)
+    db_summary = _build_database_summary(query, database) if not compare_mode else ""
 
     if not matches and not db_summary:
         return RAGAnswer(
             query=query,
-            answer="No documents have been indexed yet, or no relevant matches were found in the database. Please upload and process documents first.",
+            answer="No matching records were found in the selected documents. Please verify your query or select different documents.",
             sources=[],
             total_sources_found=0
         )
@@ -116,11 +137,17 @@ def answer_document_query(
 
     # 4. Generate grounded answer
     if service.is_configured:
-        prompt = RAG_PROMPT_TEMPLATE.format(
-            db_summary=db_summary if db_summary else "None",
-            context=context_str if context_str else "None",
-            query=query
-        )
+        if compare_mode:
+            prompt = RAG_COMPARE_PROMPT_TEMPLATE.format(
+                context=context_str if context_str else "None",
+                query=query
+            )
+        else:
+            prompt = RAG_PROMPT_TEMPLATE.format(
+                db_summary=db_summary if db_summary else "None",
+                context=context_str if context_str else "None",
+                query=query
+            )
         try:
             answer_text = service.generate_text(prompt=prompt, temperature=0.1)
         except Exception as e:

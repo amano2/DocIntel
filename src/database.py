@@ -217,22 +217,57 @@ class Database:
             
             return doc_data
 
-    def list_documents(self) -> List[Dict[str, Any]]:
-        """Lists all processed documents with high-level summary info."""
+    def list_documents(
+        self,
+        offset: int = 0,
+        limit: Optional[int] = None,
+        doc_type: Optional[str] = None,
+        search: Optional[str] = None,
+        return_total: bool = False
+    ) -> Any:
+        """Lists processed documents with optional pagination, type filtering, and search."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            query = """
+            
+            where_clauses = []
+            params = []
+            
+            if doc_type and doc_type.lower() != "all":
+                where_clauses.append("LOWER(d.doc_type) = ?")
+                params.append(doc_type.lower())
+                
+            if search and search.strip():
+                where_clauses.append("(d.filename LIKE ? OR d.doc_id LIKE ?)")
+                term = f"%{search.strip()}%"
+                params.extend([term, term])
+                
+            where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+            
+            total_count = 0
+            if return_total or limit is not None:
+                count_query = f"SELECT COUNT(*) FROM documents d {where_sql}"
+                total_count = cursor.execute(count_query, params).fetchone()[0]
+                
+            query = f"""
             SELECT 
                 d.doc_id, d.filename, d.doc_type, d.is_scanned, d.total_pages,
                 d.overall_confidence, d.status, d.created_at,
                 COUNT(a.id) as anomaly_count
             FROM documents d
             LEFT JOIN anomalies a ON d.doc_id = a.doc_id
+            {where_sql}
             GROUP BY d.doc_id
             ORDER BY d.created_at DESC
             """
-            rows = cursor.execute(query).fetchall()
-            return [dict(r) for r in rows]
+            if limit is not None:
+                query += f" LIMIT {int(limit)} OFFSET {int(offset)}"
+                
+            rows = cursor.execute(query, params).fetchall()
+            docs = [dict(r) for r in rows]
+            
+            if return_total:
+                return docs, total_count if total_count > 0 else len(docs)
+            return docs
 
     def list_all_invoices(self) -> List[Dict[str, Any]]:
         """Returns invoice metadata for duplicate cross-check."""

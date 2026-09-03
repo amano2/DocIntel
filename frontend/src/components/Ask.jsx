@@ -14,9 +14,15 @@ import {
   ShieldAlert,
   FileSearch,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  Scale,
+  Zap,
+  CheckSquare,
+  Square,
+  ArrowRight
 } from 'lucide-react';
 import { fetchDocuments, queryRAG } from '../api';
+import { useToast } from './ToastProvider';
 import { KokonutPromptInput } from './kokonutui/KokonutPromptInput';
 import { AnimatedBadge } from './kokonutui/AnimatedBadge';
 import { SpotlightCard } from './kokonutui/SpotlightCard';
@@ -132,9 +138,12 @@ function CitationAccordionItem({ citation, index }) {
 }
 
 export default function Ask({ onSelectDocument, onSwitchTab }) {
+  const toast = useToast();
   const [documents, setDocuments] = useState([]);
   const [docSearch, setDocSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState([]); // array of doc_ids
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -146,7 +155,7 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    fetchDocuments().then(data => {
+    fetchDocuments({ limit: 200 }).then(data => {
       setDocuments(data.documents || []);
     }).catch(err => console.error('Error fetching docs for Ask:', err));
   }, []);
@@ -154,6 +163,19 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  const toggleDocForCompare = (docId) => {
+    if (selectedForCompare.includes(docId)) {
+      setSelectedForCompare(prev => prev.filter(id => id !== docId));
+    } else {
+      if (selectedForCompare.length >= 2) {
+        toast.warning('Compare Mode compares 2 documents. Deselect one first.', 'Selection Limit');
+        return;
+      }
+      setSelectedForCompare(prev => [...prev, docId]);
+      toast.info(`Selected for comparison (${selectedForCompare.length + 1}/2)`, 'Document Selected');
+    }
+  };
 
   const handleSend = async (questionText) => {
     const q = questionText?.trim();
@@ -164,8 +186,15 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
     setMessages(newMessages);
     setLoading(true);
 
+    const isComparative = compareMode && selectedForCompare.length >= 2;
+    const scopedDocIds = compareMode && selectedForCompare.length > 0 ? selectedForCompare : null;
+
     try {
-      const res = await queryRAG(q);
+      const res = await queryRAG(q, {
+        topK: 4,
+        docIds: scopedDocIds,
+        compareMode: isComparative
+      });
       setMessages([
         ...newMessages,
         {
@@ -176,6 +205,7 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
       ]);
     } catch (err) {
       console.error('RAG query failed:', err);
+      toast.error('Query execution failed. Check network or model availability.', 'RAG Error');
       setMessages([
         ...newMessages,
         {
@@ -191,15 +221,24 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
 
   const filteredDocs = documents.filter(d => 
     d.filename.toLowerCase().includes(docSearch.toLowerCase()) ||
-    (d.vendor && d.vendor.toLowerCase().includes(docSearch.toLowerCase()))
+    (d.doc_type && d.doc_type.toLowerCase().includes(docSearch.toLowerCase()))
   );
 
-  const kokonutSuggestions = [
+  const standardSuggestions = [
     { text: 'Which invoices have math inconsistencies in line items?', icon: DollarSign, label: 'Invoice Math Anomaly' },
     { text: 'Find contracts missing signature dates or renewals', icon: ShieldAlert, label: 'Missing Signatures' },
     { text: 'What are the SOC2 and GDPR compliance audit findings?', icon: FileSearch, label: 'Compliance Audits' },
     { text: 'List all vendors with total billed amount across invoices', icon: CheckCircle2, label: 'Vendor Summary' },
   ];
+
+  const compareSuggestions = [
+    { text: 'Compare payment terms, due dates, and discount rates between these documents', icon: DollarSign, label: 'Payment Terms' },
+    { text: 'Compare subtotal, tax amount, and total billed variances', icon: Scale, label: 'Pricing Disparity' },
+    { text: 'Contrast liability caps, indemnification, and termination obligations', icon: ShieldAlert, label: 'Liability Comparison' },
+    { text: 'Summarize all differences and potential compliance risks', icon: FileSearch, label: 'Risk Delta' },
+  ];
+
+  const kokonutSuggestions = compareMode ? compareSuggestions : standardSuggestions;
 
   return (
     <div className="main-container animate-fade-in" style={{ paddingBottom: '32px' }}>
@@ -235,31 +274,91 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
                 }}
               />
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  setCompareMode(!compareMode);
+                  if (compareMode) setSelectedForCompare([]);
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  border: compareMode ? '1px solid var(--brand-blue)' : '1px solid var(--border-subtle)',
+                  background: compareMode ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-surface)',
+                  color: compareMode ? 'var(--brand-blue)' : 'var(--text-secondary)',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Scale size={13} />
+                <span>{compareMode ? `Compare Mode (${selectedForCompare.length}/2)` : '⚡ Enable Compare Mode'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Doc List in Ask tab */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {filteredDocs.map((doc) => (
-              <div
-                key={doc.doc_id}
-                className="doc-item"
-                onClick={() => { onSelectDocument(doc.doc_id); onSwitchTab('review'); }}
-                title="Click to view extraction in Review tab"
-              >
-                <FileText size={15} color="var(--brand-blue)" style={{ marginTop: '2px', flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {doc.filename}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-                    <span className={`pill pill-${doc.doc_type?.replace('_doc', '')}`} style={{ fontSize: '9.5px', padding: '1px 5px' }}>
-                      {doc.doc_type === 'compliance_doc' ? 'Compliance' : (doc.doc_type?.charAt(0).toUpperCase() + doc.doc_type?.slice(1))}
-                    </span>
-                    {doc.is_scanned ? <span className="pill pill-scanned" style={{ fontSize: '9.5px', padding: '1px 5px' }}>Scanned</span> : null}
+            {filteredDocs.map((doc) => {
+              const isSelectedForCompare = selectedForCompare.includes(doc.doc_id);
+              const compareIndex = selectedForCompare.indexOf(doc.doc_id);
+
+              return (
+                <div
+                  key={doc.doc_id}
+                  className={`doc-item ${isSelectedForCompare ? 'active' : ''}`}
+                  onClick={() => {
+                    if (compareMode) {
+                      toggleDocForCompare(doc.doc_id);
+                    } else {
+                      onSelectDocument(doc.doc_id);
+                      onSwitchTab('review');
+                    }
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    borderColor: isSelectedForCompare ? 'var(--brand-blue)' : 'transparent',
+                    background: isSelectedForCompare ? 'rgba(59, 130, 246, 0.08)' : undefined
+                  }}
+                  title={compareMode ? 'Click to select for comparison' : 'Click to view extraction in Review tab'}
+                >
+                  {compareMode ? (
+                    <div style={{ marginTop: '2px', flexShrink: 0 }}>
+                      {isSelectedForCompare ? (
+                        <CheckSquare size={16} color="var(--brand-blue)" />
+                      ) : (
+                        <Square size={16} color="var(--text-muted)" />
+                      )}
+                    </div>
+                  ) : (
+                    <FileText size={15} color="var(--brand-blue)" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  )}
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {doc.filename}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                      <span className={`pill pill-${doc.doc_type?.replace('_doc', '')}`} style={{ fontSize: '9.5px', padding: '1px 5px' }}>
+                        {doc.doc_type === 'compliance_doc' ? 'Compliance' : (doc.doc_type?.charAt(0).toUpperCase() + doc.doc_type?.slice(1))}
+                      </span>
+                      {doc.is_scanned ? <span className="pill pill-scanned" style={{ fontSize: '9.5px', padding: '1px 5px' }}>Scanned</span> : null}
+                      {isSelectedForCompare && (
+                        <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--brand-blue)', marginLeft: 'auto' }}>
+                          Doc {compareIndex === 0 ? 'A' : 'B'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Sticky RAG index status */}
@@ -277,20 +376,92 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '17px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                  Ask across your documents
+                  {compareMode ? 'Cross-Document Comparative Studio' : 'Ask across your documents'}
                 </h2>
                 <AnimatedBadge variant="clean" icon={<Sparkles size={11} />} pulse={false}>
-                  LLM RAG
+                  {compareMode ? 'Dual-Doc Scoped RAG' : 'LLM RAG'}
                 </AnimatedBadge>
               </div>
               <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Natural-language Q&A over the full corpus with grounded source citations
+                {compareMode 
+                  ? 'Side-by-side contrastive analysis of obligations, pricing variances, and risk deltas' 
+                  : 'Natural-language Q&A over the full corpus with grounded source citations'}
               </p>
             </div>
           </div>
 
           {/* Chat Messages */}
           <div className="chat-thread" style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+            {/* Guided Empty State if only 1 welcome message exists */}
+            {messages.length <= 1 && (
+              <div style={{ marginBottom: '24px', padding: '10px 0' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    marginBottom: '8px'
+                  }}>
+                    <Sparkles size={20} color="var(--brand-blue)" />
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                    Enterprise Document Intelligence Studio
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', maxWidth: '480px', margin: '4px auto 0 auto' }}>
+                    Ask grounded cross-document questions or click an audit inquiry below to run instantly
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                  <div 
+                    className="field-card" 
+                    onClick={() => handleSend('Which invoices have math inconsistencies in line items?')}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '14px' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <DollarSign size={16} color="#ef4444" />
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' }}>Invoice Math Anomaly</span>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Find discrepancies where line items do not sum to stated subtotal or tax.
+                    </p>
+                  </div>
+
+                  <div 
+                    className="field-card" 
+                    onClick={() => handleSend('Which contracts have missing signatures or unexecuted dates?')}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '14px' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <ShieldAlert size={16} color="#f59e0b" />
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' }}>Contract Execution</span>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Scan vendor agreements and NDAs for missing dates, missing signatures, or renewal gaps.
+                    </p>
+                  </div>
+
+                  <div 
+                    className="field-card" 
+                    onClick={() => handleSend('What are the SOC2 and GDPR compliance audit findings?')}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s ease', padding: '14px' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <FileSearch size={16} color="var(--brand-blue)" />
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-primary)' }}>Compliance Deadlines</span>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Extract non-compliant SOC 2/GDPR controls, mandated actions, and remediation deadlines.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {messages.map((msg, idx) => {
               const isUser = msg.role === 'user';
               return (
@@ -341,6 +512,40 @@ export default function Ask({ onSelectDocument, onSwitchTab }) {
 
           {/* Kokonut AI Prompt Input Bar */}
           <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
+            {compareMode && (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  marginBottom: '10px',
+                  fontSize: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                  <Scale size={14} color="var(--brand-blue)" style={{ flexShrink: 0 }} />
+                  <span style={{ fontWeight: '700', color: 'var(--brand-blue)', flexShrink: 0 }}>Comparison Target:</span>
+                  {selectedDocsInfo.length === 0 ? (
+                    <span style={{ color: 'var(--text-muted)' }}>Select 2 documents from the left corpus</span>
+                  ) : (
+                    <span style={{ color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                      {selectedDocsInfo.map((d, i) => `${i === 0 ? 'Doc A' : 'Doc B'}: ${d.filename}`).join('  ⚡  ')}
+                    </span>
+                  )}
+                </div>
+                <button 
+                  onClick={() => { setCompareMode(false); setSelectedForCompare([]); }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', flexShrink: 0, marginLeft: '8px' }}
+                >
+                  Exit Compare
+                </button>
+              </div>
+            )}
+
             <KokonutPromptInput
               onSubmit={handleSend}
               isLoading={loading}
