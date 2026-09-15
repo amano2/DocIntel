@@ -19,14 +19,14 @@ from src.classify import classify_document, ClassificationResult
 from src.extract import extract_structured_data, ExtractionResult
 from src.anomaly import detect_anomalies, AnomalyFlag
 from src.index import VectorIndex, default_vector_index
-from src.database import Database, default_db
+from src.database import get_db, Database
 from src.openrouter_service import OpenRouterService, default_openrouter_service
 
 
 def process_document(
     file_path: Union[str, Path],
     doc_id: Optional[str] = None,
-    db: Optional[Database] = None,
+    token: Optional[str] = None,
     vector_index: Optional[VectorIndex] = None,
     llm_service: Optional[OpenRouterService] = None,
     progress_callback: Optional[Callable[[str, float, str], None]] = None
@@ -37,7 +37,7 @@ def process_document(
     Args:
         file_path: Path to the document.
         doc_id: Optional unique document ID.
-        db: Database instance.
+        token: User's JWT token for Supabase multitenancy.
         vector_index: VectorIndex instance.
         llm_service: OpenRouterService instance.
         progress_callback: Optional callback receiving (stage, progress_float, message).
@@ -52,7 +52,7 @@ def process_document(
             except Exception:
                 pass
 
-    database = db or default_db
+    database = get_db(token)
     v_idx = vector_index or default_vector_index
     service = llm_service or default_openrouter_service
     
@@ -109,7 +109,8 @@ def process_document(
         filename=ingested_doc.filename,
         full_text=ingested_doc.full_text,
         doc_type=classification.doc_type,
-        fields_summary=fields_summary
+        fields_summary=fields_summary,
+        db=database
     )
     
     emit("COMPLETED", 1.0, f"Successfully processed {ingested_doc.filename} ({len(anomalies)} anomalies flagged).")

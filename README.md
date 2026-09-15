@@ -153,6 +153,27 @@ npm run dev
 ```
 *Modern SaaS Application available at `http://localhost:5173/`.*
 
+### 6. 🐳 DevOps & Production Scaling with Docker Compose
+To scale or deploy the complete pipeline in an isolated, production-grade container stack without risk of resource exhaustion or component degradation:
+
+```bash
+# Build and spin up isolated backend and frontend services
+docker compose up -d --build
+
+# Monitor health check telemetry across services
+curl http://localhost:8000/health
+
+# View live container logs
+docker compose logs -f
+```
+
+**DevOps Guardrails & Isolation Guarantees:**
+- **Resource Limits**: Backend constrained to `2.5 CPU / 3GB RAM` to prevent high-resolution PDF rasterization or embedding models from causing Host OOM faults.
+- **Deep Health Probes**: Backend `/health` probe verifies SQLite connectivity, FAISS index status, and active workers before traffic is routed.
+- **Strict Startup Ordering**: Frontend container starts only when backend passes `service_healthy`.
+- **Persistent Storage**: Volumes mounted for SQLite database (`./db`), FAISS embeddings (`./vector_store`), and uploads (`./data/uploads`) to ensure zero state loss during container rebuilds.
+- **Automated CI**: GitHub Actions workflow validates Python syntax, TypeScript bundle builds, and Docker packaging on every commit.
+
 ---
 
 ## 📊 Evaluation & Benchmark Results

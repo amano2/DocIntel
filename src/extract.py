@@ -153,6 +153,64 @@ Fields to extract:
 Respond ONLY with valid JSON matching the above structure.
 """
 
+PURCHASE_ORDER_EXTRACTION_PROMPT = """
+You are an expert Enterprise Procurement Intelligence Agent.
+Extract all key purchasing, vendor, delivery, line items, and approval details from the provided purchase order.
+
+CRITICAL FORMAT REQUIREMENT:
+Every field MUST be an object with three keys:
+- "value": The extracted value, or null if not found.
+- "confidence": Float between 0.0 and 1.0 indicating your certainty.
+- "source": "text", "vision", or "inferred".
+
+Fields to extract:
+1. "po_number": { "value": string, "confidence": float, "source": string }
+2. "vendor_name": { "value": string, "confidence": float, "source": string }
+3. "buyer_name": { "value": string, "confidence": float, "source": string }
+4. "order_date": { "value": "YYYY-MM-DD" or string, "confidence": float, "source": string }
+5. "delivery_date": { "value": "YYYY-MM-DD" or string, "confidence": float, "source": string }
+6. "payment_terms": { "value": string (e.g. "Net 45"), "confidence": float, "source": string }
+7. "line_items": {
+     "value": [
+        { "description": string, "quantity": float, "unit_price": float, "amount": float }
+     ],
+     "confidence": float,
+     "source": string
+   }
+8. "subtotal": { "value": float, "confidence": float, "source": string }
+9. "tax_amount": { "value": float, "confidence": float, "source": string }
+10. "total_amount": { "value": float, "confidence": float, "source": string }
+11. "approval_status": { "value": "approved" | "pending" | "rejected", "confidence": float, "source": string }
+12. "approver_name": { "value": string, "confidence": float, "source": string }
+
+Respond ONLY with valid JSON matching the above structure.
+"""
+
+TAX_FORM_EXTRACTION_PROMPT = """
+You are an expert Tax and Financial Compliance Document Intelligence Agent.
+Extract structured taxpayer identification, entity classification, and certification signatures from this tax record (e.g. IRS Form W-9, Form 1099).
+
+CRITICAL FORMAT REQUIREMENT:
+Every field MUST be an object with three keys:
+- "value": The extracted value, or null if not found.
+- "confidence": Float between 0.0 and 1.0 indicating your certainty.
+- "source": "text", "vision", or "inferred".
+
+Fields to extract:
+1. "form_type": { "value": string (e.g. "W-9", "1099-NEC"), "confidence": float, "source": string }
+2. "tax_year": { "value": string (e.g. "2026"), "confidence": float, "source": string }
+3. "taxpayer_name": { "value": string, "confidence": float, "source": string }
+4. "business_name": { "value": string, "confidence": float, "source": string }
+5. "tax_classification": { "value": string (e.g. "Individual/Sole Proprietor", "C Corporation", "LLC"), "confidence": float, "source": string }
+6. "tin_ein": { "value": string (e.g. "XX-XXXXXXX" or 9-digit TIN/EIN), "confidence": float, "source": string }
+7. "address": { "value": string, "confidence": float, "source": string }
+8. "exempt_payee_code": { "value": string or null, "confidence": float, "source": string }
+9. "is_signed": { "value": boolean, "confidence": float, "source": string }
+10. "signature_date": { "value": "YYYY-MM-DD" or string, "confidence": float, "source": string }
+
+Respond ONLY with valid JSON matching the above structure.
+"""
+
 GENERIC_EXTRACTION_PROMPT = """
 You are an expert Document Intelligence Agent.
 Extract core metadata, key summary points, and action items from this document.
@@ -180,7 +238,7 @@ def extract_structured_data(
     
     Args:
         doc: The IngestedDocument.
-        doc_type: 'invoice', 'contract', 'compliance_doc', or 'other'.
+        doc_type: 'invoice', 'contract', 'compliance_doc', 'purchase_order', 'tax_form', or 'other'.
         llm_service: Optional OpenRouterService.
         
     Returns:
@@ -196,6 +254,10 @@ def extract_structured_data(
         prompt_template = CONTRACT_EXTRACTION_PROMPT
     elif doc_type == "compliance_doc":
         prompt_template = COMPLIANCE_EXTRACTION_PROMPT
+    elif doc_type == "purchase_order":
+        prompt_template = PURCHASE_ORDER_EXTRACTION_PROMPT
+    elif doc_type == "tax_form":
+        prompt_template = TAX_FORM_EXTRACTION_PROMPT
     else:
         prompt_template = GENERIC_EXTRACTION_PROMPT
 
@@ -364,6 +426,55 @@ def _mock_heuristic_extraction(doc: IngestedDocument, doc_type: str) -> Extracti
         fields["clauses_referenced"] = {"value": ["SOC 2 CC6.1", "GDPR Art. 32", "SOC 2 CC7.2", "GDPR Art. 33"], "confidence": 0.95, "source": "text"}
         fields["non_compliant_count"] = {"value": 1, "confidence": 0.95, "source": "text"}
         fields["critical_deadlines"] = {"value": ["2025-11-15", "2025-12-31", "2026-01-15", "2026-02-28"], "confidence": 0.95, "source": "text"}
+
+    elif doc_type == "purchase_order":
+        po_match = re.search(r"(?:PO|PURCHASE ORDER)[#:\s]+([A-Z0-9-]+)", text, re.IGNORECASE)
+        po_num = po_match.group(1) if po_match else "PO-2026-9001"
+        
+        vendor_match = re.search(r"Vendor:\s*([^\n]+)", text, re.IGNORECASE)
+        vendor_name = vendor_match.group(1).strip() if vendor_match else "Apex Cloud Systems"
+
+        buyer_match = re.search(r"Buyer:\s*([^\n]+)", text, re.IGNORECASE)
+        buyer_name = buyer_match.group(1).strip() if buyer_match else "DocIntel Enterprise Corp."
+
+        dates = re.findall(r"\b202\d-\d{2}-\d{2}\b", text)
+        order_date = dates[0] if len(dates) > 0 else "2026-03-01"
+        delivery_date = dates[1] if len(dates) > 1 else "2026-04-01"
+
+        fields["po_number"] = {"value": po_num, "confidence": 0.95, "source": "text"}
+        fields["vendor_name"] = {"value": vendor_name, "confidence": 0.95, "source": "text"}
+        fields["buyer_name"] = {"value": buyer_name, "confidence": 0.95, "source": "text"}
+        fields["order_date"] = {"value": order_date, "confidence": 0.95, "source": "text"}
+        fields["delivery_date"] = {"value": delivery_date, "confidence": 0.95, "source": "text"}
+        fields["payment_terms"] = {"value": "Net 45", "confidence": 0.90, "source": "text"}
+        fields["subtotal"] = {"value": 12500.0, "confidence": 0.95, "source": "text"}
+        fields["tax_amount"] = {"value": 1062.50, "confidence": 0.95, "source": "text"}
+        fields["total_amount"] = {"value": 13562.50, "confidence": 0.95, "source": "text"}
+        fields["approval_status"] = {"value": "pending" if "pending" in text.lower() else "approved", "confidence": 0.92, "source": "text"}
+        fields["approver_name"] = {"value": "Marcus Vance, VP Procurement", "confidence": 0.90, "source": "text"}
+        fields["line_items"] = {"value": [
+            {"description": "Dedicated Enterprise Server Cluster", "quantity": 2, "unit_price": 4500.0, "amount": 9000.0},
+            {"description": "24/7 Priority Mission Critical Support", "quantity": 1, "unit_price": 3500.0, "amount": 3500.0}
+        ], "confidence": 0.92, "source": "text"}
+
+    elif doc_type == "tax_form":
+        form_type = "W-9" if "w-9" in text.lower() or "w9" in fname else "1099-NEC"
+        taxpayer_match = re.search(r"Name(?:\s*\(as shown on your income tax return\))?:\s*([^\n]+)", text, re.IGNORECASE)
+        taxpayer_name = taxpayer_match.group(1).strip() if taxpayer_match else "TechCorp Solutions LLC"
+
+        tin_match = re.search(r"(?:TIN|EIN|SSN)[:\s]+([0-9-]{9,11})", text, re.IGNORECASE)
+        tin_val = tin_match.group(1).strip() if tin_match else "12-3456789"
+        is_signed = False if ("unsigned" in fname or "______" in text or "unsigned" in text.lower()) else True
+
+        fields["form_type"] = {"value": form_type, "confidence": 0.95, "source": "text"}
+        fields["tax_year"] = {"value": "2026", "confidence": 0.95, "source": "text"}
+        fields["taxpayer_name"] = {"value": taxpayer_name, "confidence": 0.95, "source": "text"}
+        fields["business_name"] = {"value": taxpayer_name, "confidence": 0.90, "source": "text"}
+        fields["tax_classification"] = {"value": "C Corporation", "confidence": 0.95, "source": "text"}
+        fields["tin_ein"] = {"value": tin_val, "confidence": 0.95, "source": "text"}
+        fields["address"] = {"value": "100 Tech Boulevard, Suite 400, San Francisco, CA 94105", "confidence": 0.90, "source": "text"}
+        fields["is_signed"] = {"value": is_signed, "confidence": 0.95, "source": "text"}
+        fields["signature_date"] = {"value": "2026-01-15", "confidence": 0.90, "source": "text"}
 
     else:
         fields["title"] = {"value": doc.filename, "confidence": 0.50, "source": "text"}

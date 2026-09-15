@@ -106,7 +106,7 @@ def answer_document_query(
     service = llm_service or default_openrouter_service
     
     # 1. Semantic search (with optional doc_ids filter)
-    matches = v_idx.search(query=query, top_k=top_k * 2 if compare_mode else top_k, doc_ids=doc_ids)
+    matches = v_idx.search(query=query, top_k=top_k * 2 if compare_mode else top_k, doc_ids=doc_ids, db=database)
     
     # 2. Database Aggregations for Financial / Count Queries
     db_summary = _build_database_summary(query, database) if not compare_mode else ""

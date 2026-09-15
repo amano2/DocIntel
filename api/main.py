@@ -39,11 +39,23 @@ if str(BASE_DIR) not in sys.path:
 from src.config import (
     DATA_DIR,
     ESTIMATED_HOURLY_REVIEWER_RATE_USD,
-    ESTIMATED_MANUAL_REVIEW_MINUTES_PER_DOC
+    ESTIMATED_MANUAL_REVIEW_MINUTES_PER_DOC,
+    OPENROUTER_MODEL,
+    EMBEDDING_MODEL_NAME
 )
-from src.database import Database, default_db
+from src.database import get_db
 from src.pipeline import process_document
 from src.rag_qa import answer_document_query
+from src.index import default_vector_index
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends
+
+security = HTTPBearer()
+
+def get_db_client(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """FastAPI dependency to get a request-scoped Supabase client initialized with the user's JWT."""
+    return get_db(token=credentials.credentials)
+
 
 UPLOAD_DIR = DATA_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -56,7 +68,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,7 +79,7 @@ app.add_middleware(
 upload_jobs: Dict[str, Dict[str, Any]] = {}
 
 
-def _async_pipeline_worker(file_path: Path, doc_id: str, filename: str):
+def _async_pipeline_worker(file_path: Path, doc_id: str, filename: str, token: str = None):
     """Background thread worker to execute pipeline with real-time stage updates."""
     def on_progress(stage: str, progress: float, message: str):
         if doc_id in upload_jobs:
@@ -82,7 +94,8 @@ def _async_pipeline_worker(file_path: Path, doc_id: str, filename: str):
         result = process_document(
             file_path=file_path,
             doc_id=doc_id,
-            progress_callback=on_progress
+            progress_callback=on_progress,
+            token=token
         )
         if doc_id in upload_jobs:
             upload_jobs[doc_id].update({
@@ -127,12 +140,84 @@ def root():
         "service": "Multimodal Document Intelligence Agent API",
         "version": "2.0.0",
         "status": "operational",
-        "docs_url": "/docs"
+        "docs_url": "/docs",
+        "health_url": "/health"
     }
 
 
+@app.get("/health")
+def health_check(db = Depends(get_db_client)):
+    """
+    DevOps and Orchestration Health Probe Endpoint.
+    Returns 200 OK with deep diagnostic telemetry across database,
+    vector store, multimodal engine, and background worker state.
+    """
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "DocIntel Multimodal Backend",
+        "version": "2.0.0",
+        "components": {}
+    }
+    
+    # 1. Supabase Database Connection & Document Count
+    try:
+        doc_count = db.list_documents(return_total=True)[1]
+        health_status["components"]["database"] = {
+            "status": "healthy",
+            "connected": True,
+            "document_count": doc_count,
+            "backend": "supabase-postgres"
+        }
+    except Exception as e:
+        health_status["status"] = "degraded"
+        health_status["components"]["database"] = {
+            "status": "unhealthy",
+            "connected": False,
+            "error": str(e)
+        }
+
+    # 2. FAISS Vector Store Index Telemetry
+    try:
+        index_size = default_vector_index.index.ntotal if default_vector_index.index else 0
+        health_status["components"]["vector_store"] = {
+            "status": "healthy",
+            "indexed_chunks": index_size,
+            "embedding_model": EMBEDDING_MODEL_NAME
+        }
+    except Exception as e:
+        health_status["status"] = "degraded"
+        health_status["components"]["vector_store"] = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+
+    # 3. Multimodal LLM Configuration Status
+    has_key = bool(os.getenv("OPENROUTER_API_KEY", "").strip())
+    health_status["components"]["multimodal_llm"] = {
+        "status": "operational" if has_key else "fallback_mode",
+        "provider": "OpenRouter / Gemini Vision Free Tier",
+        "model": OPENROUTER_MODEL,
+        "key_configured": has_key
+    }
+
+    # 4. Pipeline Jobs & Concurrency Telemetry
+    active_jobs = sum(1 for j in upload_jobs.values() if j.get("status") == "processing")
+    health_status["components"]["pipeline_workers"] = {
+        "status": "healthy",
+        "active_jobs": active_jobs,
+        "total_jobs_tracked": len(upload_jobs)
+    }
+
+    return health_status
+
+
 @app.post("/upload")
-async def upload_document(file: UploadFile = File(...), sync: bool = False):
+async def upload_document(
+    file: UploadFile = File(...), 
+    sync: bool = False,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     """
     Ingests and processes an uploaded PDF or image file.
     By default runs asynchronously and returns a job_id for real-time telemetry tracking.
@@ -144,8 +229,12 @@ async def upload_document(file: UploadFile = File(...), sync: bool = False):
             detail=f"Unsupported file format: {file_suffix}. Allowed: PDF, PNG, JPG, JPEG, WEBP."
         )
 
+    if file.size and file.size > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File size exceeds 20MB limit.")
+
+    secure_filename = Path(file.filename).name
     doc_id = str(uuid.uuid4())
-    saved_path = UPLOAD_DIR / f"{doc_id}_{file.filename}"
+    saved_path = UPLOAD_DIR / f"{doc_id}_{secure_filename}"
     
     with open(saved_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -177,6 +266,7 @@ async def upload_document(file: UploadFile = File(...), sync: bool = False):
     thread = threading.Thread(
         target=_async_pipeline_worker,
         args=(saved_path, doc_id, file.filename),
+        kwargs={"token": credentials.credentials},
         daemon=True
     )
     thread.start()
@@ -190,12 +280,12 @@ async def upload_document(file: UploadFile = File(...), sync: bool = False):
 
 
 @app.get("/upload/status/{job_id}")
-def get_upload_status(job_id: str):
+def get_upload_status(job_id: str, db = Depends(get_db_client)):
     """Returns real-time pipeline processing telemetry for an upload job."""
     job = upload_jobs.get(job_id)
     if not job:
         # Check if already in database (e.g. from previous run)
-        doc = default_db.get_document(job_id)
+        doc = db.get_document(job_id)
         if doc:
             return {
                 "job_id": job_id,
@@ -215,11 +305,12 @@ def list_documents(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     limit: int = Query(50, ge=1, le=500, description="Items per page"),
     doc_type: Optional[str] = Query(None, description="Filter by document type"),
-    search: Optional[str] = Query(None, description="Search term for filename or doc_id")
+    search: Optional[str] = Query(None, description="Search term for filename or doc_id"),
+    db = Depends(get_db_client)
 ):
     """Returns a paginated list of processed documents with status & anomaly count."""
     offset = (page - 1) * limit
-    docs, total_count = default_db.list_documents(
+    docs, total_count = db.list_documents(
         offset=offset,
         limit=limit,
         doc_type=doc_type,
@@ -238,26 +329,27 @@ def list_documents(
 
 
 @app.get("/documents/{doc_id}")
-def get_document_details(doc_id: str):
+def get_document_details(doc_id: str, db = Depends(get_db_client)):
     """Retrieves full extraction details, confidence scores, and anomalies for a document."""
-    doc = default_db.get_document(doc_id)
+    doc = db.get_document(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail=f"Document with ID '{doc_id}' not found.")
     return doc
 
 
 @app.get("/documents/{doc_id}/preview")
-def get_document_preview(doc_id: str):
+def get_document_preview(doc_id: str, db = Depends(get_db_client)):
     """
     Renders and streams a PNG visual preview thumbnail of the first page of a document.
     """
-    doc = default_db.get_document(doc_id)
+    doc = db.get_document(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
     
     file_path = Path(doc.get("file_path", ""))
     if not file_path.exists():
-        matches = list(DATA_DIR.glob(f"**/{doc.get('filename')}"))
+        secure_filename = Path(doc.get('filename', '')).name
+        matches = list(DATA_DIR.rglob(secure_filename))
         if matches:
             file_path = matches[0]
         else:
@@ -286,12 +378,12 @@ def get_document_preview(doc_id: str):
 
 
 @app.post("/documents/{doc_id}/correct")
-def correct_document_field(doc_id: str, payload: FieldCorrectionRequest):
+def correct_document_field(doc_id: str, payload: FieldCorrectionRequest, db = Depends(get_db_client)):
     """
     Updates an extracted field value by a human reviewer (Audit Trail record).
     Also performs invariant re-verification on dependent rules.
     """
-    success = default_db.update_field_value(
+    success = db.update_field_value(
         doc_id=doc_id,
         field_name=payload.field_name,
         new_value=payload.new_value
@@ -300,7 +392,7 @@ def correct_document_field(doc_id: str, payload: FieldCorrectionRequest):
         raise HTTPException(status_code=404, detail="Document or field not found.")
 
     # Invariant re-check for invoices
-    doc = default_db.get_document(doc_id)
+    doc = db.get_document(doc_id)
     if doc and doc.get("doc_type") == "invoice":
         fields = doc.get("fields", {})
         try:
@@ -309,9 +401,7 @@ def correct_document_field(doc_id: str, payload: FieldCorrectionRequest):
             total = float(str(fields.get("total_amount", {}).get("value", 0)).replace("$", "").replace(",", ""))
             if abs((subtotal + tax) - total) < 0.05:
                 # Math inconsistency is resolved — remove or resolve the anomaly
-                with default_db.get_connection() as conn:
-                    conn.execute("DELETE FROM anomalies WHERE doc_id = ? AND type = 'line_item_math_mismatch'", (doc_id,))
-                    conn.commit()
+                db.client.table("anomalies").delete().eq("doc_id", doc_id).eq("rule_name", "line_item_math_mismatch").execute()
         except Exception:
             pass
 
@@ -319,12 +409,12 @@ def correct_document_field(doc_id: str, payload: FieldCorrectionRequest):
 
 
 @app.get("/documents/export-all")
-def export_all_documents():
+def export_all_documents(db = Depends(get_db_client)):
     """
     Enterprise Batch Export: Packages all extracted document JSON manifests
     and a master audit_trail_summary.csv into a single streaming ZIP archive.
     """
-    docs = default_db.list_documents()
+    docs = db.list_documents()
     zip_buffer = io.BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -347,7 +437,7 @@ def export_all_documents():
         # 2. Individual JSON manifest per document
         for d in docs:
             doc_id = d.get("doc_id")
-            doc_full = default_db.get_document(doc_id)
+            doc_full = db.get_document(doc_id)
             if doc_full:
                 manifest_name = f"json/{doc_id}_{d.get('filename')}.json"
                 zip_file.writestr(manifest_name, json.dumps(doc_full, indent=2))
@@ -388,7 +478,7 @@ def get_evaluation_summary():
 
 
 @app.post("/query")
-def rag_query(payload: QueryRequest):
+def rag_query(payload: QueryRequest, db = Depends(get_db_client)):
     """
     Executes semantic RAG Q&A across the document corpus with source citations.
     Supports Compare Mode and doc_ids scoping.
@@ -407,14 +497,17 @@ def rag_query(payload: QueryRequest):
 
 
 @app.get("/anomalies")
-def list_anomalies(severity: Optional[str] = Query(None, description="Filter by severity: high, medium, low, or all")):
+def list_anomalies(
+    severity: Optional[str] = Query(None, description="Filter by severity: high, medium, low, or all"),
+    db = Depends(get_db_client)
+):
     """Lists flagged anomalies across all documents."""
-    anomalies = default_db.list_all_anomalies(severity_filter=severity)
+    anomalies = db.list_all_anomalies(severity_filter=severity)
     return {"anomalies": anomalies, "total_count": len(anomalies)}
 
 
 @app.get("/dashboard/stats")
-def get_dashboard_metrics():
+def get_dashboard_metrics(db = Depends(get_db_client)):
     """
     Computes ROI & executive dashboard business metrics:
     - Total documents processed
@@ -424,8 +517,8 @@ def get_dashboard_metrics():
     - Review hours saved & dollar cost saved
     - Recent documents for audit trail
     """
-    docs = default_db.list_documents()
-    anomalies = default_db.list_all_anomalies()
+    docs = db.list_documents()
+    anomalies = db.list_all_anomalies()
     
     total_docs = len(docs)
     scanned_docs = sum(1 for d in docs if d.get("is_scanned"))

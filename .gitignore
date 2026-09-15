@@ -21,10 +21,12 @@ ENV/
 .env.example
 secrets.json
 *.key
-GEMINI.md
-skills-lock.json
 .agents/
-ARCHITECTURE_AND_DESIGN.md
+
+# Ignore all markdown files
+*.md
+# Unignore README.md
+!README.md
 
 # ── SQLite Database ─────────────────────────────────────────────
 db/*.db

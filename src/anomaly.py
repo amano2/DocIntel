@@ -77,6 +77,10 @@ def detect_anomalies(
         flags.extend(_check_contract_renewal_deadlines(extracted_fields, raw_text))
     elif doc_type == "compliance_doc":
         flags.extend(_check_compliance_deadlines(extracted_fields))
+    elif doc_type == "purchase_order":
+        flags.extend(_check_purchase_order_rules(extracted_fields, raw_text, existing_invoices, current_doc_id=doc_id))
+    elif doc_type == "tax_form":
+        flags.extend(_check_tax_form_rules(extracted_fields, raw_text))
 
     # 2. Run LLM catch-all inspector (if OpenRouter is configured)
     service = llm_service or default_openrouter_service
@@ -340,6 +344,150 @@ def _check_compliance_deadlines(fields: Dict[str, Dict[str, Any]]) -> List[Anoma
             type="rule",
             suggested_action="Assign remediation owner and track milestone completion prior to audit deadline."
         ))
+    return flags
+
+
+# --- Rule 7: Purchase Order Verification Rules ---
+def _check_purchase_order_rules(
+    fields: Dict[str, Dict[str, Any]],
+    raw_text: str = "",
+    existing_docs: Optional[List[Dict[str, Any]]] = None,
+    current_doc_id: str = ""
+) -> List[AnomalyFlag]:
+    flags = []
+
+    subtotal = _get_float_val(fields, "subtotal")
+    tax = _get_float_val(fields, "tax_amount")
+    total = _get_float_val(fields, "total_amount")
+    line_items = fields.get("line_items", {}).get("value")
+
+    # Math: line items vs subtotal
+    if isinstance(line_items, list) and len(line_items) > 0 and subtotal is not None:
+        calc_sub = sum(
+            (float(it.get("amount", it.get("total", 0.0)))
+             for it in line_items
+             if isinstance(it, dict) and ("amount" in it or "total" in it))
+        )
+        if calc_sub > 0 and abs(calc_sub - subtotal) > 0.05:
+            flags.append(AnomalyFlag(
+                field="subtotal",
+                severity="high",
+                message=f"PO line items sum (${calc_sub:,.2f}) does not match reported subtotal (${subtotal:,.2f}).",
+                type="rule",
+                suggested_action="Reconcile item quantities and rates before dispatching purchase order."
+            ))
+
+    # Math: subtotal + tax vs total
+    if subtotal is not None and tax is not None and total is not None:
+        expected_total = subtotal + tax
+        if abs(expected_total - total) > 0.05:
+            flags.append(AnomalyFlag(
+                field="total_amount",
+                severity="high",
+                message=f"PO subtotal (${subtotal:,.2f}) + tax (${tax:,.2f}) = ${expected_total:,.2f}, which does not match total amount (${total:,.2f}).",
+                type="rule",
+                suggested_action="Recalculate purchase order financial totals and adjust order ledger."
+            ))
+
+    # Chronology: delivery_date vs order_date
+    order_date_str = _get_str_val(fields, "order_date")
+    delivery_date_str = _get_str_val(fields, "delivery_date")
+    order_dt = _parse_date(order_date_str)
+    delivery_dt = _parse_date(delivery_date_str)
+
+    if order_dt and delivery_dt and delivery_dt < order_dt:
+        flags.append(AnomalyFlag(
+            field="delivery_date",
+            severity="high",
+            message=f"PO requested delivery date ({delivery_date_str}) occurs before the order creation date ({order_date_str}).",
+            type="rule",
+            suggested_action="Update purchase order delivery schedule with realistic logistics turnaround."
+        ))
+
+    # Approval Status
+    approval_status = _get_str_val(fields, "approval_status").lower()
+    approver = _get_str_val(fields, "approver_name")
+    if approval_status in ["pending", "unapproved", "draft"] or not approver or "pending" in approver.lower():
+        flags.append(AnomalyFlag(
+            field="approval_status",
+            severity="medium",
+            message="Purchase order requisition has not been authorized or approval is pending executive sign-off.",
+            type="rule",
+            suggested_action="Route requisition to designated departmental procurement authority for budget approval."
+        ))
+
+    # Duplicate PO Check
+    po_num = _get_str_val(fields, "po_number")
+    vendor = _get_str_val(fields, "vendor_name")
+    if po_num and existing_docs:
+        for ex in existing_docs:
+            if ex.get("doc_id") == current_doc_id:
+                continue
+            ex_fields = ex.get("fields", {})
+            ex_po = _get_str_val(ex_fields, "po_number") or _get_str_val(ex_fields, "invoice_number")
+            ex_vendor = _get_str_val(ex_fields, "vendor_name")
+            if ex_po and ex_po.lower() == po_num.lower():
+                flags.append(AnomalyFlag(
+                    field="po_number",
+                    severity="high",
+                    message=f"Duplicate Purchase Order number '{po_num}' previously registered for vendor '{ex_vendor or vendor}'.",
+                    type="rule",
+                    suggested_action="Verify procurement ledger to prevent dual order fulfillment or duplicate payment obligation."
+                ))
+                break
+
+    return flags
+
+
+# --- Rule 8: Tax Form (W-9 / 1099) Verification Rules ---
+def _check_tax_form_rules(fields: Dict[str, Dict[str, Any]], raw_text: str = "") -> List[AnomalyFlag]:
+    flags = []
+
+    # Check TIN / EIN format
+    tin_val = _get_str_val(fields, "tin_ein")
+    clean_digits = re.sub(r"\D", "", tin_val)
+    
+    if not tin_val or len(clean_digits) != 9 or clean_digits == "000000000":
+        flags.append(AnomalyFlag(
+            field="tin_ein",
+            severity="high",
+            message=f"Taxpayer Identification Number (TIN/EIN) '{tin_val or 'MISSING'}' is invalid. Federal forms require exactly 9 digits.",
+            type="rule",
+            suggested_action="Issue formal IRS Form W-9 request to vendor to provide validated TIN/EIN before remittance."
+        ))
+
+    # Check Signature & Certification
+    is_signed = fields.get("is_signed", {}).get("value")
+    sig_date = _get_str_val(fields, "signature_date")
+    
+    if is_signed is False or "______" in raw_text or "unsigned" in raw_text.lower():
+        flags.append(AnomalyFlag(
+            field="is_signed",
+            severity="high",
+            message="Tax certification document is unexecuted. Certification under penalties of perjury is missing signature.",
+            type="rule",
+            suggested_action="Do not disburse payments until signed tax certification is on file for IRS 1099 reporting."
+        ))
+    elif not sig_date:
+        flags.append(AnomalyFlag(
+            field="signature_date",
+            severity="medium",
+            message="Tax certification signature date is missing or indeterminate.",
+            type="rule",
+            suggested_action="Request counterparty complete attestation date block."
+        ))
+
+    # Entity classification
+    classification = _get_str_val(fields, "tax_classification")
+    if not classification:
+        flags.append(AnomalyFlag(
+            field="tax_classification",
+            severity="medium",
+            message="Federal tax classification checkbox (e.g. C-Corp, LLC, Sole Proprietor) is unselected.",
+            type="rule",
+            suggested_action="Confirm entity tax status for appropriate 1099 backup withholding determination."
+        ))
+
     return flags
 
 
