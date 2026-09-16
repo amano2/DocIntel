@@ -1,10 +1,10 @@
-api/
-src/
-eval/
-scripts/
-models/
-data/
-db/
+/api/
+/src/
+/eval/
+/scripts/
+/models/
+/data/
+/db/
 *.py
 requirements.txt
 Dockerfile
