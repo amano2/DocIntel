@@ -212,7 +212,7 @@ def health_check(db = Depends(get_db_client)):
     return health_status
 
 
-@app.post("/upload")
+@app.post("/api/upload")
 async def upload_document(
     file: UploadFile = File(...), 
     sync: bool = False,
@@ -279,7 +279,7 @@ async def upload_document(
     }
 
 
-@app.get("/upload/status/{job_id}")
+@app.get("/api/upload/status/{job_id}")
 def get_upload_status(job_id: str, db = Depends(get_db_client)):
     """Returns real-time pipeline processing telemetry for an upload job."""
     job = upload_jobs.get(job_id)
@@ -300,7 +300,7 @@ def get_upload_status(job_id: str, db = Depends(get_db_client)):
     return job
 
 
-@app.get("/documents")
+@app.get("/api/documents")
 def list_documents(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     limit: int = Query(50, ge=1, le=500, description="Items per page"),
@@ -328,7 +328,7 @@ def list_documents(
     }
 
 
-@app.get("/documents/{doc_id}")
+@app.get("/api/documents/{doc_id}")
 def get_document_details(doc_id: str, db = Depends(get_db_client)):
     """Retrieves full extraction details, confidence scores, and anomalies for a document."""
     doc = db.get_document(doc_id)
@@ -337,7 +337,7 @@ def get_document_details(doc_id: str, db = Depends(get_db_client)):
     return doc
 
 
-@app.get("/documents/{doc_id}/preview")
+@app.get("/api/documents/{doc_id}/preview")
 def get_document_preview(doc_id: str, db = Depends(get_db_client)):
     """
     Renders and streams a PNG visual preview thumbnail of the first page of a document.
@@ -377,7 +377,7 @@ def get_document_preview(doc_id: str, db = Depends(get_db_client)):
     return Response(content=img_bytes.getvalue(), media_type="image/png")
 
 
-@app.post("/documents/{doc_id}/correct")
+@app.post("/api/documents/{doc_id}/correct")
 def correct_document_field(doc_id: str, payload: FieldCorrectionRequest, db = Depends(get_db_client)):
     """
     Updates an extracted field value by a human reviewer (Audit Trail record).
@@ -408,7 +408,7 @@ def correct_document_field(doc_id: str, payload: FieldCorrectionRequest, db = De
     return {"message": "Field successfully corrected and logged in audit trail."}
 
 
-@app.get("/documents/export-all")
+@app.get("/api/documents/export-all")
 def export_all_documents(db = Depends(get_db_client)):
     """
     Enterprise Batch Export: Packages all extracted document JSON manifests
@@ -451,7 +451,7 @@ def export_all_documents(db = Depends(get_db_client)):
     )
 
 
-@app.get("/eval/summary")
+@app.get("/api/eval/summary")
 def get_evaluation_summary():
     """Returns empirical accuracy benchmarks and evaluation telemetry."""
     eval_file = BASE_DIR / "eval" / "eval_results.json"
@@ -477,7 +477,7 @@ def get_evaluation_summary():
     }
 
 
-@app.post("/query")
+@app.post("/api/query")
 def rag_query(payload: QueryRequest, db = Depends(get_db_client)):
     """
     Executes semantic RAG Q&A across the document corpus with source citations.
@@ -496,7 +496,7 @@ def rag_query(payload: QueryRequest, db = Depends(get_db_client)):
 
 
 
-@app.get("/anomalies")
+@app.get("/api/anomalies")
 def list_anomalies(
     severity: Optional[str] = Query(None, description="Filter by severity: high, medium, low, or all"),
     db = Depends(get_db_client)
@@ -506,7 +506,7 @@ def list_anomalies(
     return {"anomalies": anomalies, "total_count": len(anomalies)}
 
 
-@app.get("/dashboard/stats")
+@app.get("/api/dashboard/stats")
 def get_dashboard_metrics(db = Depends(get_db_client)):
     """
     Computes ROI & executive dashboard business metrics:
