@@ -302,7 +302,8 @@ export async function uploadDocumentFile(
   const formData = new FormData();
   formData.append('file', file);
 
-  const res = await fetchWithAuth(`${API_BASE}/upload`, {
+  // We enforce sync=true because Vercel kills background threads after the HTTP response returns.
+  const res = await fetchWithAuth(`${API_BASE}/upload?sync=true`, {
     method: 'POST',
     body: formData
   });
@@ -310,9 +311,15 @@ export async function uploadDocumentFile(
     throw new Error(`Upload failed: ${res.statusText}`);
   }
   const initData = await res.json();
+  
+  // If processed synchronously, return the result directly.
+  if (initData.document) {
+    return adaptBackendDocToFrontend(initData.document);
+  }
+  
   const jobId = initData.job_id;
 
-  // Poll status until complete or failed
+  // Poll status until complete or failed (fallback logic if sync=false was used somehow)
   const maxAttempts = 60;
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(r => setTimeout(r, 600));
@@ -342,6 +349,18 @@ export async function uploadDocumentFile(
 
   // Fallback if polling timed out
   return await fetchDocumentDetails(jobId);
+}
+
+/**
+ * Seeds a sample document in the backend using the new endpoint.
+ */
+export async function seedSampleDocument(sampleType: string): Promise<DocumentItem> {
+  const res = await fetchWithAuth(`${API_BASE}/seed-sample/${sampleType}`);
+  if (!res.ok) {
+    throw new Error(`Failed to seed sample document: ${res.statusText}`);
+  }
+  const data = await res.json();
+  return adaptBackendDocToFrontend(data.document);
 }
 
 /**

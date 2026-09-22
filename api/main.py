@@ -57,7 +57,7 @@ def get_db_client(credentials: HTTPAuthorizationCredentials = Depends(security))
     return get_db(token=credentials.credentials)
 
 
-UPLOAD_DIR = DATA_DIR / "uploads"
+UPLOAD_DIR = Path("/tmp/uploads") if os.environ.get("VERCEL") == "1" else DATA_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
@@ -298,6 +298,47 @@ def get_upload_status(job_id: str, db = Depends(get_db_client)):
             }
         raise HTTPException(status_code=404, detail=f"Upload job '{job_id}' not found.")
     return job
+
+@app.get("/api/seed-sample/{sample_type}")
+def seed_sample_document(sample_type: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Seeds a sample document (invoice, contract, duplicate) into the database by running it synchronously through the pipeline.
+    This enables frontend UI mock presets to actually populate the database on Vercel.
+    """
+    filename_map = {
+        "invoice": "invoice_039_techcorp_inv-2026-202639.pdf",
+        "msa": "contract_050_master_services_horizon.pdf",
+        "duplicate": "invoice_015_scanned_datastream_inv-2026-duplicate-001.pdf",
+        "nda": "contract_024_scanned_non-disclosure_cybershield.pdf"
+    }
+    
+    filename = filename_map.get(sample_type)
+    if not filename:
+        raise HTTPException(status_code=400, detail="Invalid sample type.")
+        
+    source_path = BASE_DIR / "data" / "sample_docs" / filename
+    if not source_path.exists():
+        # Fallback to list first invoice if specific one isn't found
+        matches = list((BASE_DIR / "data" / "sample_docs").glob(f"*{sample_type.split('_')[0]}*.pdf"))
+        if matches:
+            source_path = matches[0]
+            filename = source_path.name
+        else:
+            raise HTTPException(status_code=404, detail=f"Sample document {filename} not found.")
+
+    doc_id = str(uuid.uuid4())
+    saved_path = UPLOAD_DIR / f"{doc_id}_{filename}"
+    shutil.copy2(source_path, saved_path)
+    
+    try:
+        result = process_document(file_path=saved_path, doc_id=doc_id, token=credentials.credentials)
+        return {
+            "message": "Document successfully processed",
+            "job_id": doc_id,
+            "document": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline processing failed: {str(e)}")
 
 
 @app.get("/api/documents")

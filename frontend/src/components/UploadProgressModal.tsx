@@ -55,7 +55,7 @@ export function UploadProgressModal({ isOpen, onClose, onDocumentCreated }: Uplo
 
   if (!isOpen) return null;
 
-  const startPipelineExecution = (presetType: string, fileTitle: string, docType: DocumentType) => {
+  const startPipelineExecution = async (presetType: string, fileTitle: string, docType: DocumentType) => {
     setIsProcessing(true);
     setCurrentStageIndex(0);
     setProgress(5);
@@ -67,134 +67,32 @@ export function UploadProgressModal({ isOpen, onClose, onDocumentCreated }: Uplo
       setElapsedMs(elapsed);
     }, 50);
 
-    // Sequence stages realistically
+    // Simulate early stages for UI UX since backend on Vercel is fully synchronous
     setTimeout(() => {
-      setProgress(22);
-      setCurrentStageIndex(0);
-      setLogs(prev => [...prev, `[0.24s] PyPDF text extract OK; Rasterized 2 pages @ 300DPI for multimodal fallback`]);
-    }, 400);
-
-    setTimeout(() => {
-      setProgress(44);
-      setCurrentStageIndex(1);
-      setLogs(prev => [...prev, `[0.55s] Dynamic classifier confidence 98.6% -> Classified archetype as ${docType}`]);
-    }, 850);
-
-    setTimeout(() => {
-      setProgress(68);
-      setCurrentStageIndex(2);
-      setLogs(prev => [...prev, `[0.98s] Extracted line items, subtotal, tax & counterparty entities with calibrated confidence`]);
-    }, 1350);
-
-    setTimeout(() => {
-      setProgress(88);
-      setCurrentStageIndex(3);
-      if (presetType.includes('invoice')) {
-        setLogs(prev => [...prev, `[1.42s] [WARN] Invariant check flagged ERR_MATH_INVARIANT_MISMATCH: Subtotal + Tax != Total`]);
-      } else if (presetType.includes('duplicate')) {
-        setLogs(prev => [...prev, `[1.42s] [ALERT] Fraud Engine: Duplicate content hash collision detected in historical ledger!`]);
-      } else {
-        setLogs(prev => [...prev, `[1.42s] [OK] Deterministic invariants validated; All guardrails cleared without violations`]);
+      if (progress < 22) {
+        setProgress(22);
+        setCurrentStageIndex(0);
+        setLogs(prev => [...prev, `[${((Date.now() - startTimeRef.current) / 1000).toFixed(2)}s] PyPDF text extract OK; Rasterized 2 pages @ 300DPI`]);
       }
-    }, 1850);
+    }, 1500);
 
-    setTimeout(() => {
-      setProgress(100);
-      setCurrentStageIndex(4);
-      setLogs(prev => [...prev, `[2.15s] Dense embeddings synced to FAISS; Record committed to SQLite audit database`]);
+    try {
+      // Actually hit the backend so the DB + FAISS gets populated!
+      const { seedSampleDocument } = await import('../api');
+      const liveDoc = await seedSampleDocument(presetType);
 
       if (timerRef.current) clearInterval(timerRef.current);
-
-      // Create new document item
-      const newDoc: DocumentItem = {
-        id: `DOC-LIVE-${Date.now().toString().slice(-4)}`,
-        title: fileTitle,
-        fileName: `${fileTitle.replace(/\s+/g, '_')}.pdf`,
-        fileSize: '1.2 MB',
-        docType: docType,
-        category: docType === 'INVOICE' ? 'Financial Operations' : 'Legal Procurement',
-        uploadDate: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
-        vendorOrParties: 'Palantir Commercial Technologies → Acme Corp',
-        totalAmount: docType === 'INVOICE' ? 18450.00 : 0.00,
-        currency: 'USD',
-        status: presetType.includes('nda') ? 'AUTO_APPROVED' : 'REVIEW_REQUIRED',
-        overallConfidence: 96.5,
-        pages: 2,
-        ocrPathway: 'HYBRID_MULTIMODAL',
-        fields: {
-          invoice_number: {
-            key: 'invoice_number',
-            label: 'Document Identifier',
-            value: `DOC-INGEST-${Math.floor(1000 + Math.random() * 9000)}`,
-            confidence: 99.4,
-            type: 'text'
-          },
-          subtotal: {
-            key: 'subtotal',
-            label: 'Subtotal Amount',
-            value: '$15,000.00',
-            numericValue: 15000.00,
-            confidence: 96.8,
-            type: 'currency'
-          },
-          tax_amount: {
-            key: 'tax_amount',
-            label: 'Sales Tax (8%)',
-            value: '$1,200.00',
-            numericValue: 1200.00,
-            confidence: 97.1,
-            type: 'currency'
-          },
-          total_amount: {
-            key: 'total_amount',
-            label: 'Total Amount Due',
-            value: presetType.includes('invoice') ? '$18,450.00' : '$16,200.00',
-            numericValue: presetType.includes('invoice') ? 18450.00 : 16200.00,
-            confidence: 98.2,
-            type: 'currency'
-          }
-        },
-        anomalies: presetType.includes('invoice') ? [
-          {
-            id: `ANOM-GEN-${Date.now()}`,
-            code: 'ERR_MATH_INVARIANT_MISMATCH',
-            severity: 'high',
-            ruleType: 'math_invariant',
-            title: 'Arithmetic Invariant Discrepancy (+$2,250.00)',
-            description: 'Subtotal ($15,000.00) + Tax ($1,200.00) = $16,200.00, but printed total is $18,450.00. Unreconciled difference.',
-            expectedValue: '$16,200.00',
-            actualValue: '$18,450.00',
-            fieldKey: 'subtotal',
-            resolved: false
-          }
-        ] : [],
-        auditTrail: [
-          {
-            id: `AUD-${Date.now()}`,
-            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
-            fieldKey: 'PIPELINE_INGEST',
-            fieldLabel: 'Asynchronous Ingestion',
-            previousValue: 'UPLOADED_RAW',
-            newValue: 'INDEXED_COMPLETE',
-            author: 'DocIntel Agent (Pipeline Daemon)',
-            reason: 'Processed via 5-stage multimodal pipeline in 2.15s'
-          }
-        ],
-        rawTextPreview: `PALANTIR COMMERCIAL TECHNOLOGIES
-DOCUMENT IDENTIFIER: LIVE-INGEST-${Math.floor(1000 + Math.random() * 9000)}
-DATE: ${new Date().toLocaleDateString()}
-SUBTOTAL: $15,000.00
-SALES TAX: $1,200.00
-TOTAL DUE: ${presetType.includes('invoice') ? '$18,450.00 [MISMATCH]' : '$16,200.00'}`,
-        boundingBoxes: [
-          { page: 1, top: 12, left: 10, width: 80, height: 20, label: 'Document Header' },
-          { page: 1, top: 60, left: 55, width: 38, height: 25, label: 'Financial Schedule', isAnomaly: presetType.includes('invoice') }
-        ]
-      };
-
-      setCompletedDoc(newDoc);
+      setProgress(100);
+      setCurrentStageIndex(4);
+      setLogs(prev => [...prev, `[${((Date.now() - startTimeRef.current) / 1000).toFixed(2)}s] Dense embeddings synced to FAISS; Record committed to database`]);
+      
+      setCompletedDoc(liveDoc);
       showToast('success', 'Pipeline Execution Complete', `${fileTitle} indexed into knowledge base.`);
-    }, 2400);
+    } catch (err: any) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setIsProcessing(false);
+      showToast('error', 'Pipeline Failed', err.message);
+    }
   };
 
   const handleLaunchPreset = (presetId: string) => {

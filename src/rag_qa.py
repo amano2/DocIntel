@@ -14,7 +14,7 @@ from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 
 from src.index import VectorIndex, default_vector_index
-from src.database import Database, default_db
+from src.database import Database, get_db
 from src.openrouter_service import OpenRouterService, default_openrouter_service
 
 
@@ -102,7 +102,7 @@ def answer_document_query(
     Supports multi-document comparison mode and document-scoped filtering.
     """
     v_idx = vector_index or default_vector_index
-    database = db or default_db
+    database = db or get_db()
     service = llm_service or default_openrouter_service
     
     # 1. Semantic search (with optional doc_ids filter)
