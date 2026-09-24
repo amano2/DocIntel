@@ -21,41 +21,44 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   ];
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-screen bg-industrial-grid bg-vignette text-foreground overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border/50 bg-card/30 flex flex-col glass-card m-4 rounded-xl shadow-lg">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold tracking-tight text-primary">Doc<span className="text-foreground">Intel</span></h2>
-          <p className="text-xs text-muted-foreground mt-1">Enterprise Review Agent</p>
+      <aside className="w-64 border-r-2 border-border bg-background flex flex-col m-0 shadow-none z-10">
+        <div className="p-6 border-b-2 border-border">
+          <div className="inline-block px-2 py-0.5 mb-2 border border-primary text-primary font-mono text-[10px] font-bold uppercase">
+            SYS_ACTIVE
+          </div>
+          <h2 className="text-3xl font-heading font-extrabold uppercase tracking-widest text-primary">Doc<span className="text-foreground">Intel</span></h2>
+          <p className="text-xs font-mono text-muted-foreground mt-2 uppercase tracking-widest">Enterprise Agent</p>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2 mt-4">
+        <nav className="flex-1 px-4 space-y-4 mt-8">
           {navItems.map((item) => (
             <NavLink
               key={item.name}
               to={item.path}
               className={({ isActive }) => 
-                `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                `group flex items-center gap-4 px-3 py-3 transition-all border-l-4 ${
                   isActive 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
-                }`
+                    ? 'border-primary bg-primary/10 text-primary font-bold' 
+                    : 'border-transparent text-muted-foreground hover:border-primary/50 hover:bg-secondary/50 hover:text-foreground font-medium'
+                } font-mono uppercase text-sm tracking-wider`
               }
             >
-              <item.icon size={18} />
+              <item.icon size={18} className="group-hover:text-primary transition-colors" />
               {item.name}
             </NavLink>
           ))}
         </nav>
         
-        <div className="p-4 border-t border-border/50">
+        <div className="p-4 border-t-2 border-border bg-background">
           <div className="flex items-center justify-between">
-            <div className="text-xs truncate text-muted-foreground" title={session?.user.email}>
-              {session?.user.email}
+            <div className="text-[10px] font-mono truncate text-muted-foreground uppercase" title={session?.user.email}>
+              USR: {session?.user.email?.split('@')[0]}
             </div>
             <button 
               onClick={handleLogout}
-              className="text-muted-foreground hover:text-destructive p-1 rounded-md transition-colors"
+              className="text-muted-foreground hover:text-primary p-2 border border-transparent hover:border-primary transition-all"
               title="Sign Out"
             >
               <LogOut size={16} />
@@ -65,8 +68,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-4 pl-0">
-        <div className="h-full bg-card/10 border border-border/30 rounded-xl overflow-hidden relative">
+      <main className="flex-1 overflow-auto p-8 content-z">
+        <div className="h-full bg-background/95 border-2 border-border industrial-panel overflow-hidden relative">
           {children}
         </div>
       </main>

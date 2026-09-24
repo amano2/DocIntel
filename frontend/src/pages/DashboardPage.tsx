@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import SidebarLayout from '../components/SidebarLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../context/AuthContext';
 import { FileText, AlertTriangle, Clock } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,86 +41,95 @@ export default function DashboardPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8 h-full flex flex-col">
-        <h1 className="text-3xl font-bold mb-8">Executive Overview</h1>
+      <div className="p-8 h-full flex flex-col relative z-10">
+        <div className="mb-10 animate-reveal">
+          <div className="inline-block px-2 py-1 mb-2 border-2 border-primary text-primary font-mono text-[10px] font-bold uppercase tracking-widest">
+            Module // Overview
+          </div>
+          <h1 className="text-5xl font-heading font-extrabold uppercase tracking-tight">Executive <br/><span className="text-primary">Dashboard</span></h1>
+        </div>
         
         {loading ? (
-          <div className="flex-1 flex items-center justify-center">Loading dashboard...</div>
+          <div className="flex-1 flex items-center justify-center font-mono animate-pulse uppercase tracking-widest">
+            [Fetching telemetry...]
+          </div>
         ) : (
-          <div className="space-y-8 flex-1 overflow-auto">
+          <div className="space-y-10 flex-1 overflow-auto pb-10">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="glass-card border-none bg-primary/10">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Documents Processed</CardTitle>
-                  <FileText className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold">{stats.documents_processed}</div>
-                </CardContent>
-              </Card>
               
-              <Card className="glass-card border-none bg-destructive/10">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Anomalies Caught</CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold text-destructive">{stats.anomalies_flagged}</div>
-                </CardContent>
-              </Card>
+              {/* Docs Processed */}
+              <div className="industrial-panel p-6 border-l-4 border-l-primary animate-reveal delay-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">Volume_Processed</h3>
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-5xl font-mono font-bold">{stats.documents_processed}</div>
+                <div className="mt-2 text-[10px] font-mono text-muted-foreground uppercase">Target capacity: Nominal</div>
+              </div>
               
-              <Card className="glass-card border-none bg-accent/10">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Time Saved (Hours)</CardTitle>
-                  <Clock className="h-4 w-4 text-accent" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-bold text-accent">{stats.est_time_saved_hours.toFixed(1)}</div>
-                </CardContent>
-              </Card>
+              {/* Anomalies */}
+              <div className="industrial-panel p-6 border-l-4 border-l-destructive animate-reveal delay-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">Anomalies_Detected</h3>
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
+                <div className="text-5xl font-mono font-bold text-destructive">{stats.anomalies_flagged}</div>
+                <div className="mt-2 text-[10px] font-mono text-muted-foreground uppercase">Requires manual intervention</div>
+              </div>
+              
+              {/* Time Saved */}
+              <div className="industrial-panel p-6 border-l-4 border-l-accent animate-reveal delay-300">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">Est_Time_Saved [HRS]</h3>
+                  <Clock className="h-5 w-5 text-accent" />
+                </div>
+                <div className="text-5xl font-mono font-bold text-accent">{stats.est_time_saved_hours.toFixed(1)}</div>
+                <div className="mt-2 text-[10px] font-mono text-muted-foreground uppercase">Efficiency gain recorded</div>
+              </div>
+
             </div>
             
             {/* Recent Documents */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Recent Documents</h2>
-              <Card className="glass-card border-border/30 bg-card/20">
+            <div className="animate-reveal delay-400">
+              <h2 className="text-xl font-heading font-bold uppercase mb-4 tracking-widest border-b-2 border-border pb-2">Recent Ingestions</h2>
+              <div className="industrial-panel">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border/30 hover:bg-transparent">
-                      <TableHead>Filename</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Uploaded</TableHead>
+                    <TableRow className="border-b-2 border-border hover:bg-transparent">
+                      <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground">ID_Filename</TableHead>
+                      <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Classification</TableHead>
+                      <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Status</TableHead>
+                      <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Timestamp</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {recentDocs.slice(0, 5).map((doc) => (
-                      <TableRow key={doc.doc_id} className="border-border/30 hover:bg-secondary/30">
-                        <TableCell className="font-medium">{doc.filename}</TableCell>
-                        <TableCell className="capitalize">{doc.doc_type || '-'}</TableCell>
+                      <TableRow key={doc.doc_id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                        <TableCell className="font-mono text-sm">{doc.filename}</TableCell>
+                        <TableCell className="font-mono text-xs uppercase">{doc.doc_type || 'Unclassified'}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            doc.status === 'completed' ? 'bg-primary/20 text-primary' :
-                            doc.status === 'processing' ? 'bg-accent/20 text-accent' :
-                            'bg-destructive/20 text-destructive'
+                          <span className={`inline-block px-2 py-0.5 border font-mono text-[10px] uppercase font-bold tracking-wider ${
+                            doc.status === 'completed' ? 'border-primary text-primary bg-primary/10' :
+                            doc.status === 'processing' ? 'border-accent text-accent bg-accent/10' :
+                            'border-destructive text-destructive bg-destructive/10'
                           }`}>
                             {doc.status}
                           </span>
                         </TableCell>
-                        <TableCell>{new Date(doc.upload_time).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-mono text-xs">{new Date(doc.upload_time).toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
                     {recentDocs.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          No documents uploaded yet.
+                        <TableCell colSpan={4} className="text-center font-mono text-sm text-muted-foreground py-10 uppercase tracking-widest">
+                          [ Data stream empty ]
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
-              </Card>
+              </div>
             </div>
           </div>
         )}
