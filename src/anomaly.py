@@ -2,6 +2,9 @@ from typing import Dict, Any, List
 import re
 from src.openrouter_service import OpenRouterService
 from src.config import DOC_TYPE_INVOICE, DOC_TYPE_CONTRACT, DOC_TYPE_PO, CONFIDENCE_THRESHOLD_MEDIUM
+from src.logger import get_logger
+
+log = get_logger("anomaly")
 
 class AnomalyDetectionError(Exception):
     pass
@@ -110,7 +113,7 @@ async def run_llm_catchall(llm_service: OpenRouterService, doc_type: str, extrac
         result = await llm_service.generate_json(prompt=prompt)
         return result.get("anomalies", [])
     except Exception as e:
-        print(f"LLM Anomaly check failed: {e}")
+        log.warning(f"LLM anomaly catchall failed (non-fatal): {e}")
         return []
 
 async def detect_anomalies(llm_service: OpenRouterService, doc_type: str, extracted_data: Dict[str, Any]) -> List[Dict[str, str]]:

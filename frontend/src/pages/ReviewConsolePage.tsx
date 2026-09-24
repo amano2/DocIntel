@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../context/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Upload, AlertTriangle, CheckCircle, FileText, Settings, ShieldAlert } from 'lucide-react';
+import { Upload, AlertTriangle, CheckCircle, FileText, Settings, ShieldAlert, Activity } from 'lucide-react';
 
 export default function ReviewConsolePage() {
   const { session } = useAuth();
   const [docs, setDocs] = useState<any[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [docDetails, setDocDetails] = useState<any>(null);
+  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [pipelineProgress, setPipelineProgress] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,10 +41,42 @@ export default function ReviewConsolePage() {
       });
       const data = await res.json();
       setDocDetails(data);
+
+      const auditRes = await fetch(`/api/documents/${docId}/audit-log`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      const auditData = await auditRes.json();
+      setAuditLog(auditData.audit_log || []);
     } catch (e) {
       console.error(e);
     }
   };
+
+  useEffect(() => {
+    if (!selectedDocId || !session) {
+      setPipelineProgress(null);
+      return;
+    }
+    
+    const doc = docs.find(d => d.doc_id === selectedDocId);
+    if (doc?.status === 'processing') {
+      const eventSource = new EventSource(`/api/upload/stream/${selectedDocId}?token=${session.access_token}`);
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setPipelineProgress(data);
+          if (data.stage === 'COMPLETED' || data.stage === 'FAILED') {
+            eventSource.close();
+            fetchDocs();
+            fetchDocDetails(selectedDocId);
+          }
+        } catch(e) {}
+      };
+      return () => eventSource.close();
+    } else {
+      setPipelineProgress(null);
+    }
+  }, [selectedDocId, session, docs]);
 
   useEffect(() => {
     if (selectedDocId) {
@@ -61,16 +95,18 @@ export default function ReviewConsolePage() {
     formData.append('file', file);
     
     try {
-      await fetch('/api/upload', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${session.access_token}` },
         body: formData
       });
+      const data = await res.json();
       
-      setTimeout(() => {
-        fetchDocs();
-        setUploading(false);
-      }, 2000);
+      setUploading(false);
+      fetchDocs();
+      if (data.doc_id) {
+        setSelectedDocId(data.doc_id);
+      }
     } catch (err) {
       console.error(err);
       setUploading(false);
@@ -149,6 +185,20 @@ export default function ReviewConsolePage() {
               <Settings size={64} className="mb-6 opacity-20 animate-spin-slow" />
               <div className="font-mono uppercase tracking-widest text-sm">Select item to initialize review console</div>
             </div>
+          ) : pipelineProgress && pipelineProgress.stage !== 'COMPLETED' ? (
+            <div className="h-full flex flex-col items-center justify-center font-mono animate-reveal max-w-md mx-auto w-full">
+              <Activity size={48} className="mb-6 text-primary animate-pulse" />
+              <div className="w-full bg-secondary border-2 border-border h-6 relative mb-4">
+                <div className="bg-primary h-full transition-all duration-500 ease-out" style={{ width: `${pipelineProgress.percent}%` }}></div>
+              </div>
+              <div className="flex justify-between w-full uppercase tracking-widest text-xs font-bold mb-2">
+                <span className="text-primary">{pipelineProgress.stage}</span>
+                <span>{pipelineProgress.percent}%</span>
+              </div>
+              <div className="text-xs text-muted-foreground uppercase tracking-widest text-center">
+                {pipelineProgress.label || 'Processing document...'}
+              </div>
+            </div>
           ) : !docDetails ? (
             <div className="h-full flex items-center justify-center font-mono uppercase text-sm tracking-widest animate-pulse">
               [ Fetching file parameters... ]
@@ -181,6 +231,26 @@ export default function ReviewConsolePage() {
                           <div className="text-[10px] font-mono bg-destructive text-destructive-foreground px-2 py-0.5 uppercase font-bold tracking-widest">LVL: {an.severity}</div>
                         </div>
                         <div className="text-sm font-sans">{an.description}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Audit Log Section */}
+              {auditLog && auditLog.length > 0 && (
+                <div className="industrial-panel p-6 bg-secondary/20 animate-reveal delay-250">
+                  <div className="flex items-center gap-3 font-heading font-bold uppercase tracking-widest text-lg mb-4 border-b-2 border-border pb-2">
+                    <FileText size={20}/> Immutable Audit Trail
+                  </div>
+                  <div className="space-y-2">
+                    {auditLog.map(log => (
+                      <div key={log.id} className="text-xs font-mono border-l-2 border-primary pl-4 py-2">
+                        <span className="text-primary font-bold">[{new Date(log.created_at).toLocaleString()}]</span> 
+                        <span className="text-muted-foreground ml-2">Override on </span>
+                        <span className="uppercase font-bold">{log.field_name}</span>: 
+                        <span className="line-through mx-2 text-destructive">{log.previous_value || 'null'}</span> 
+                        <span className="text-accent">➔ {log.corrected_value}</span>
                       </div>
                     ))}
                   </div>
@@ -223,9 +293,9 @@ export default function ReviewConsolePage() {
                         <div className="mt-6 pt-4 border-t-2 border-border/50">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" className="w-full font-mono text-xs uppercase tracking-widest rounded-none border-2">
+                              <div role="button" tabIndex={0} className="brutalist-button w-full font-mono text-xs uppercase tracking-widest rounded-none border-2 flex items-center justify-center h-8 cursor-pointer">
                                 {field.corrected ? '> OVERRIDE CORRECTION' : '> INITIATE OVERRIDE'}
-                              </Button>
+                              </div>
                             </DialogTrigger>
                             <DialogContent className="industrial-panel border-2 border-primary rounded-none shadow-[8px_8px_0px_0px_var(--color-primary)]">
                               <DialogHeader>
