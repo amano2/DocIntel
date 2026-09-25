@@ -43,11 +43,7 @@ function App() {
             </ProtectedRoute>
           } />
           
-          <Route path="/benchmark" element={
-            <ProtectedRoute>
-              <BenchmarkPage />
-            </ProtectedRoute>
-          } />
+          <Route path="/benchmark" element={<BenchmarkPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

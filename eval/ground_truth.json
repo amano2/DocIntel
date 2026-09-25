@@ -1,0 +1,94 @@
+{
+  "invoice_clean.pdf": {
+    "expected_doc_type": "invoice",
+    "expected_fields": {
+      "vendor_name": "Northwind Industrial Supply Co.",
+      "invoice_number": "INV-2024-0871",
+      "date": "2024-08-15",
+      "due_date": "2024-09-15",
+      "subtotal": "4480.00",
+      "tax": "358.40",
+      "total": "4838.40",
+      "payment_terms": "Net 30",
+      "currency": "USD"
+    },
+    "expected_anomalies": [],
+    "description": "Clean invoice with correct math. No anomalies expected."
+  },
+  "invoice_anomaly_math.pdf": {
+    "expected_doc_type": "invoice",
+    "expected_fields": {
+      "vendor_name": "Globex Corporation",
+      "invoice_number": "INV-2024-1337",
+      "date": "2024-09-01",
+      "subtotal": "900.00",
+      "tax": "72.00",
+      "total": "1050.00"
+    },
+    "expected_anomalies": [
+      "Math Mismatch"
+    ],
+    "description": "Invoice where subtotal+tax != total. Math Mismatch anomaly expected."
+  },
+  "invoice_duplicate.pdf": {
+    "expected_doc_type": "invoice",
+    "expected_fields": {
+      "vendor_name": "Globex Corporation",
+      "invoice_number": "INV-2024-1337"
+    },
+    "expected_anomalies": [
+      "Duplicate Invoice Number"
+    ],
+    "description": "Invoice with same number as invoice_anomaly_math. Duplicate anomaly expected."
+  },
+  "contract_clean.pdf": {
+    "expected_doc_type": "contract",
+    "expected_fields": {
+      "parties": [
+        "Acme Consulting Group",
+        "Wayne Enterprises"
+      ],
+      "effective_date": "2024-01-15",
+      "signature_status": "signed",
+      "governing_law": "Delaware"
+    },
+    "expected_anomalies": [],
+    "description": "Fully signed contract. No anomalies expected."
+  },
+  "contract_unsigned.pdf": {
+    "expected_doc_type": "contract",
+    "expected_fields": {
+      "parties": [
+        "Stark Industries",
+        "Oscorp Technologies"
+      ],
+      "signature_status": "unsigned"
+    },
+    "expected_anomalies": [
+      "Unsigned Contract"
+    ],
+    "description": "Unsigned contract draft. Unsigned anomaly expected."
+  },
+  "compliance_clean.pdf": {
+    "expected_doc_type": "compliance_doc",
+    "expected_fields": {
+      "document_title": "Q3 2024 GDPR Compliance Audit",
+      "issuing_authority": "Internal Data Protection Office",
+      "compliance_status": "partially compliant"
+    },
+    "expected_anomalies": [],
+    "description": "Clean compliance doc. No anomalies expected."
+  },
+  "po_high_value.pdf": {
+    "expected_doc_type": "purchase_order",
+    "expected_fields": {
+      "po_number": "PO-2024-5599",
+      "vendor_name": "Precision Machining Ltd.",
+      "total_amount": "65700.00"
+    },
+    "expected_anomalies": [
+      "High Value PO"
+    ],
+    "description": "PO over $50k threshold. High Value PO anomaly expected."
+  }
+}

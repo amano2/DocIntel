@@ -10,3 +10,5 @@ supabase
 python-dotenv
 pydantic
 openai
+json-repair
+reportlab

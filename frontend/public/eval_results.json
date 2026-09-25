@@ -1,0 +1,655 @@
+{
+  "run_timestamp": "2026-09-25T11:49:07",
+  "total_documents": 7,
+  "total_duration_s": 196.5,
+  "aggregate": {
+    "classification_accuracy": 1.0,
+    "extraction_accuracy": 0.714,
+    "anomaly_recall": 1.0,
+    "anomaly_precision": 0.39
+  },
+  "per_document": [
+    {
+      "filename": "invoice_clean.pdf",
+      "description": "Clean invoice with correct math. No anomalies expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 17.6,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 527
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 3065.6,
+          "predicted": "invoice",
+          "expected": "invoice",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 4329.4,
+          "field_count": 4,
+          "field_scores": {
+            "vendor_name": {
+              "expected": "Northwind Industrial Supply Co.",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "invoice_number": {
+              "expected": "INV-2024-0871",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "date": {
+              "expected": "2024-08-15",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "due_date": {
+              "expected": "2024-09-15",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "subtotal": {
+              "expected": "4480.00",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "tax": {
+              "expected": "358.40",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "total": {
+              "expected": "4838.40",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "payment_terms": {
+              "expected": "Net 30",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "currency": {
+              "expected": "USD",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 2527.9,
+          "detected": [],
+          "expected": [],
+          "true_positives": [],
+          "caught": [],
+          "all_anomalies": []
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 78.7
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 0.0,
+        "fields_matched": "0/9",
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "invoice_anomaly_math.pdf",
+      "description": "Invoice where subtotal+tax != total. Math Mismatch anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 2.8,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 344
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 1221.1,
+          "predicted": "invoice",
+          "expected": "invoice",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 4170.2,
+          "field_count": 10,
+          "field_scores": {
+            "vendor_name": {
+              "expected": "Globex Corporation",
+              "actual": "Globex Corporation",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "invoice_number": {
+              "expected": "INV-2024-1337",
+              "actual": "INV-2024-1337",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "date": {
+              "expected": "2024-09-01",
+              "actual": "2024-09-01",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "subtotal": {
+              "expected": "900.00",
+              "actual": "$900.00",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "tax": {
+              "expected": "72.00",
+              "actual": "$72.00",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "total": {
+              "expected": "1050.00",
+              "actual": "$1,050.00",
+              "confidence": 1.0,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 3456.7,
+          "detected": [
+            "Math Mismatch",
+            "Total Mismatch"
+          ],
+          "expected": [
+            "Math Mismatch"
+          ],
+          "true_positives": [
+            "Math Mismatch"
+          ],
+          "caught": [
+            "Math Mismatch"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Math Mismatch",
+              "description": "Subtotal + Tax (900.0 + 72.0) does not equal Total (1050.0).",
+              "severity": "high"
+            },
+            {
+              "rule_name": "Total Mismatch",
+              "description": "The stated total ($1,050.00) does not equal the sum of the subtotal ($900.00) and tax ($72.00), which should be $972.00. There is an unexplained discrepancy of $78.00. This could indicate a data extraction error, an unlisted fee, or an incorrect total.",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 48.6
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "6/6",
+        "anomaly_precision": 0.5,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "contract_clean.pdf",
+      "description": "Fully signed contract. No anomalies expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 2.8,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 1263
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 1192.9,
+          "predicted": "contract",
+          "expected": "contract",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 3935.6,
+          "field_count": 4,
+          "field_scores": {
+            "parties": {
+              "expected": "['Acme Consulting Group', 'Wayne Enterprises']",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "effective_date": {
+              "expected": "2024-01-15",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "signature_status": {
+              "expected": "signed",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            },
+            "governing_law": {
+              "expected": "Delaware",
+              "actual": "null",
+              "confidence": 0.0,
+              "matched": false
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 6263.8,
+          "detected": [
+            "Unsigned Contract",
+            "Unmapped Party Roles",
+            "Fictional Entity Detected",
+            "Placeholder Naming Convention"
+          ],
+          "expected": [],
+          "true_positives": [],
+          "caught": [],
+          "all_anomalies": [
+            {
+              "rule_name": "Unsigned Contract",
+              "description": "The contract appears to be missing a signature.",
+              "severity": "high"
+            },
+            {
+              "rule_name": "Unmapped Party Roles",
+              "description": "The source metadata explicitly states the paragraph identifies 'Party A and Party B', but the extracted value is an unordered array that does not specify which entity corresponds to Party A and which corresponds to Party B.",
+              "severity": "medium"
+            },
+            {
+              "rule_name": "Fictional Entity Detected",
+              "description": "The entity 'Wayne Enterprises, Inc.' is a well-known fictional corporation from DC Comics (Batman). Its presence in an extracted real-world contract is highly suspicious and may indicate an LLM hallucination, test data leakage, or placeholder error.",
+              "severity": "high"
+            },
+            {
+              "rule_name": "Placeholder Naming Convention",
+              "description": "The entity 'Acme Consulting Group, LLC' uses the word 'Acme', which is a classic placeholder/fictional naming convention often used in testing, cartoons, or mock documents. This raises concerns about the authenticity of the contract.",
+              "severity": "low"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 57.8
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 0.0,
+        "fields_matched": "0/4",
+        "anomaly_precision": 0.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "contract_unsigned.pdf",
+      "description": "Unsigned contract draft. Unsigned anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 2.6,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 785
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2693.2,
+          "predicted": "contract",
+          "expected": "contract",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 3543.0,
+          "field_count": 8,
+          "field_scores": {
+            "parties": {
+              "expected": "['Stark Industries', 'Oscorp Technologies']",
+              "actual": "['Stark Industries', 'Oscorp Technologies']",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "signature_status": {
+              "expected": "unsigned",
+              "actual": "unsigned",
+              "confidence": 1.0,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 27092.6,
+          "detected": [
+            "Low Confidence Extraction",
+            "Unsigned Contract",
+            "Unsigned Contract with Stated Effective Date",
+            "Missing Signature Date",
+            "Unspecified Party Roles in Obligations"
+          ],
+          "expected": [
+            "Unsigned Contract"
+          ],
+          "true_positives": [
+            "Unsigned Contract",
+            "Unsigned Contract with Stated Effective Date"
+          ],
+          "caught": [
+            "Unsigned Contract"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Low Confidence Extraction",
+              "description": "Field 'signature_date' was extracted with low confidence.",
+              "severity": "medium"
+            },
+            {
+              "rule_name": "Unsigned Contract",
+              "description": "The contract appears to be missing a signature.",
+              "severity": "high"
+            },
+            {
+              "rule_name": "Unsigned Contract with Stated Effective Date",
+              "description": "The contract specifies an effective date of March 1, 2024, yet the signature block shows 'UNSIGNED' for both Stark Industries and Oscorp Technologies. A contract cannot be legally binding or effective without execution by all parties. This represents a fundamental logical contradiction \u2014 a document is declared effective but has never been signed.",
+              "severity": "high"
+            },
+            {
+              "rule_name": "Missing Signature Date",
+              "description": "No signature date was found in the document despite the presence of an effective date, expiry date, and a signature block. In any executed contract, a signature date is critical evidence of when the agreement was formally accepted. Its absence, combined with an unsigned status, further undermines the validity of the stated effective date.",
+              "severity": "medium"
+            },
+            {
+              "rule_name": "Unspecified Party Roles in Obligations",
+              "description": "The key obligations reference 'Provider' and 'Client' roles (Provider delivers weekly sprint reports and code; Client pays within Net 45 terms), but the parties section only lists company names (Stark Industries, Oscorp Technologies) without designating which is the Provider and which is the Client. This ambiguity could lead to disputes over which party bears which obligation.",
+              "severity": "low"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 48.9
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "2/2",
+        "anomaly_precision": 0.4,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "compliance_clean.pdf",
+      "description": "Clean compliance doc. No anomalies expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 2.4,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 1061
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2479.0,
+          "predicted": "compliance_doc",
+          "expected": "compliance_doc",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 5713.6,
+          "field_count": 6,
+          "field_scores": {
+            "document_title": {
+              "expected": "Q3 2024 GDPR Compliance Audit",
+              "actual": "Q3 2024 GDPR Compliance Audit",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "issuing_authority": {
+              "expected": "Internal Data Protection Office",
+              "actual": "Internal Data Protection Office",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "compliance_status": {
+              "expected": "partially compliant",
+              "actual": "PARTIALLY COMPLIANT",
+              "confidence": 1.0,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 6471.4,
+          "detected": [
+            "DPIA Article Reference Gap"
+          ],
+          "expected": [],
+          "true_positives": [],
+          "caught": [],
+          "all_anomalies": [
+            {
+              "rule_name": "DPIA Article Reference Gap",
+              "description": "The required action 'Complete Data Protection Impact Assessment for Project Atlas' directly corresponds to GDPR Article 35 (DPIAs), yet Article 35 is absent from the relevant_clause_references list. Only Article 25 (Data protection by design and by default) is listed as a related clause, which is conceptually adjacent but does not specifically mandate DPIAs. This creates a logical inconsistency between the required actions and the cited legal basis.",
+              "severity": "medium"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 71.3
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "3/3",
+        "anomaly_precision": 0.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "po_high_value.pdf",
+      "description": "PO over $50k threshold. High Value PO anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 2.6,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 357
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2332.5,
+          "predicted": "purchase_order",
+          "expected": "purchase_order",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 4346.6,
+          "field_count": 7,
+          "field_scores": {
+            "po_number": {
+              "expected": "PO-2024-5599",
+              "actual": "PO-2024-5599",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "vendor_name": {
+              "expected": "Precision Machining Ltd.",
+              "actual": "Precision Machining Ltd.",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "total_amount": {
+              "expected": "65700.00",
+              "actual": "65700.0",
+              "confidence": 1.0,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 8225.8,
+          "detected": [
+            "High Value PO",
+            "Description-Quantity Mismatch",
+            "Unusually Short CNC Lead Time"
+          ],
+          "expected": [
+            "High Value PO"
+          ],
+          "true_positives": [
+            "High Value PO"
+          ],
+          "caught": [
+            "High Value PO"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "High Value PO",
+              "description": "PO amount is unusually high: 65700.0.",
+              "severity": "low"
+            },
+            {
+              "rule_name": "Description-Quantity Mismatch",
+              "description": "The line item 'Titanium Stock (500kg)' embeds '500kg' in its description but lists quantity as 1. This creates a logical ambiguity: it is unclear whether the unit of measure is '1 lot of 500kg' or if the quantity should be 500 (in kg). A deterministic rule checking quantity \u00d7 unit_price = amount would pass (1 \u00d7 $18,500 = $18,500), but the description-to-quantity inconsistency could lead to fulfillment or invoicing errors.",
+              "severity": "medium"
+            },
+            {
+              "rule_name": "Unusually Short CNC Lead Time",
+              "description": "The order date is 2024-10-01 with an expected delivery date of 2024-11-15 (45 calendar days). For a capital equipment item like a CNC Milling Machine (a typically custom-configured, longer-lead-time asset), a 45-day turnaround from order to delivery is on the shorter end of industry norms (often 60\u2013120+ days). This could indicate either an expedited arrangement or a potentially unrealistic delivery promise.",
+              "severity": "low"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 50.2
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "3/3",
+        "anomaly_precision": 0.333,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "invoice_duplicate.pdf",
+      "description": "Invoice with same number as invoice_anomaly_math. Duplicate anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 2.4,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 305
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 1545.7,
+          "predicted": "invoice",
+          "expected": "invoice",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 8730.1,
+          "field_count": 10,
+          "field_scores": {
+            "vendor_name": {
+              "expected": "Globex Corporation",
+              "actual": "Globex Corporation",
+              "confidence": 1.0,
+              "matched": true
+            },
+            "invoice_number": {
+              "expected": "INV-2024-1337",
+              "actual": "INV-2024-1337",
+              "confidence": 1.0,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 71620.9,
+          "detected": [
+            "Low Confidence Extraction",
+            "Duplicate Invoice Number"
+          ],
+          "expected": [
+            "Duplicate Invoice Number"
+          ],
+          "true_positives": [
+            "Duplicate Invoice Number"
+          ],
+          "caught": [
+            "Duplicate Invoice Number"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Low Confidence Extraction",
+              "description": "Field 'currency' was extracted with low confidence.",
+              "severity": "medium"
+            },
+            {
+              "rule_name": "Duplicate Invoice Number",
+              "description": "Invoice number 'INV-2024-1337' has already been processed previously.",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 42.6
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "2/2",
+        "anomaly_precision": 0.5,
+        "anomaly_recall": 1.0
+      }
+    }
+  ]
+}

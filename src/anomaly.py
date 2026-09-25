@@ -23,6 +23,12 @@ def _parse_float(val: Any) -> float:
             return 0.0
     return 0.0
 
+_SEEN_INVOICE_NUMBERS = set()
+
+def reset_seen_invoices():
+    global _SEEN_INVOICE_NUMBERS
+    _SEEN_INVOICE_NUMBERS.clear()
+
 def run_deterministic_rules(doc_type: str, extracted_data: Dict[str, Any]) -> List[Dict[str, str]]:
     anomalies = []
     
@@ -37,7 +43,20 @@ def run_deterministic_rules(doc_type: str, extracted_data: Dict[str, Any]) -> Li
                 })
 
     if doc_type == DOC_TYPE_INVOICE:
-        # 2. Math mismatch
+        # 2. Duplicate Invoice Check
+        inv_num = extracted_data.get("invoice_number", {}).get("value")
+        if inv_num:
+            clean_inv = str(inv_num).strip().upper()
+            if clean_inv in _SEEN_INVOICE_NUMBERS:
+                anomalies.append({
+                    "rule_name": "Duplicate Invoice Number",
+                    "description": f"Invoice number '{inv_num}' has already been processed previously.",
+                    "severity": "high"
+                })
+            else:
+                _SEEN_INVOICE_NUMBERS.add(clean_inv)
+
+        # 3. Math mismatch
         subtotal = _parse_float(extracted_data.get("subtotal", {}).get("value"))
         tax = _parse_float(extracted_data.get("tax", {}).get("value"))
         total = _parse_float(extracted_data.get("total", {}).get("value"))
@@ -49,14 +68,15 @@ def run_deterministic_rules(doc_type: str, extracted_data: Dict[str, Any]) -> Li
                 "severity": "high"
             })
             
-        # 3. Empty line items
-        line_items = extracted_data.get("line_items", {}).get("value")
-        if not line_items or len(line_items) == 0:
-            anomalies.append({
-                "rule_name": "Missing Line Items",
-                "description": "No line items were found on this invoice.",
-                "severity": "medium"
-            })
+        # 4. Empty line items
+        if "line_items" in extracted_data:
+            line_items = extracted_data.get("line_items", {}).get("value")
+            if not line_items or len(line_items) == 0:
+                anomalies.append({
+                    "rule_name": "Missing Line Items",
+                    "description": "No line items were found on this invoice.",
+                    "severity": "medium"
+                })
             
     elif doc_type == DOC_TYPE_CONTRACT:
         # 4. Missing signature

@@ -134,6 +134,20 @@ async def extract_structured_data(
                 is_vision=False,
             )
 
+        if isinstance(result, list):
+            if len(result) > 0 and isinstance(result[0], dict):
+                # If it's a list containing the fields dict
+                result = result[0]
+            else:
+                merged = {}
+                for item in result:
+                    if isinstance(item, dict):
+                        merged.update(item)
+                result = merged
+
+        if not isinstance(result, dict):
+            result = {}
+
         field_count = sum(1 for v in result.values() if isinstance(v, dict))
         log.info(f"Extraction returned {field_count} fields for doc_type={doc_type}")
         return result

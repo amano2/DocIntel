@@ -44,7 +44,7 @@ CHUNK_OVERLAP = 80                 # Overlap words between adjacent chunks
 
 # ── LLM Models (OpenRouter) ─────────────────────────────────────────────────
 VISION_MODEL = "google/gemini-2.5-flash"        # Vision-capable, handles scanned docs
-TEXT_MODEL = "qwen/qwen3-27b:free"               # Free-tier text model for extraction/classification
+TEXT_MODEL = "inclusionai/ling-3.0-flash-fin:free"   # Financial/text model for extraction/classification
 
 # ── Anomaly Detection Settings ───────────────────────────────────────────────
 ANOMALY_MATH_TOLERANCE = 0.05           # $ tolerance for math mismatch checks

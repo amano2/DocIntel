@@ -108,11 +108,13 @@ export default function LandingPage() {
             <a href="#pipeline" className="hover:text-primary transition-colors">Pipeline</a>
             <a href="#roi" className="hover:text-primary transition-colors">ROI Calc</a>
             <a href="#pricing" className="hover:text-primary transition-colors">Pricing</a>
-            <a href="#compliance" className="hover:text-primary transition-colors">Compliance</a>
+            <a href="/benchmark" className="text-primary hover:underline font-bold transition-colors">Benchmarks</a>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <a href="#" className="hidden md:block font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">Docs & API</a>
+          <a href="/benchmark" className="font-mono text-xs uppercase tracking-widest text-primary border border-primary/40 px-3 py-2 hover:bg-primary/10 transition-colors">
+            System Benchmarks
+          </a>
           <Dialog>
             <DialogTrigger asChild>
               <div role="button" tabIndex={0} className="brutalist-button font-mono uppercase tracking-widest text-xs h-10 px-6 rounded-none inline-flex items-center justify-center cursor-pointer">
