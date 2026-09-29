@@ -43,7 +43,7 @@ CHUNK_SIZE = 400                   # Words per chunk for FAISS indexing
 CHUNK_OVERLAP = 80                 # Overlap words between adjacent chunks
 
 # ── LLM Models (OpenRouter) ─────────────────────────────────────────────────
-VISION_MODEL = "google/gemini-2.5-flash"        # Vision-capable, handles scanned docs
+VISION_MODEL = "inclusionai/ling-3.0-flash-fin:free"        # Vision-capable, handles scanned docs
 TEXT_MODEL = "inclusionai/ling-3.0-flash-fin:free"   # Financial/text model for extraction/classification
 
 # ── Anomaly Detection Settings ───────────────────────────────────────────────

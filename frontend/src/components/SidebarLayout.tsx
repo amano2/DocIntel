@@ -94,8 +94,8 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto p-8 content-z">
-        <div className="h-full bg-background/95 border-2 border-border industrial-panel overflow-hidden relative">
+      <main className="flex-1 overflow-auto p-4 md:p-8 content-z">
+        <div className="min-h-full bg-background/95 border-2 border-border industrial-panel relative">
           {children}
         </div>
       </main>

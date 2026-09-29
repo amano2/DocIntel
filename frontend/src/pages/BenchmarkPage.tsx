@@ -99,7 +99,7 @@ export default function BenchmarkPage() {
 
   return (
     <SidebarLayout>
-      <div className="p-8 h-full flex flex-col overflow-y-auto max-w-7xl mx-auto w-full">
+      <div className="p-8 max-w-7xl mx-auto w-full pb-16">
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-border/40">
           <div>
@@ -124,7 +124,6 @@ export default function BenchmarkPage() {
               <div className="flex items-center gap-1.5 text-xs font-mono text-primary font-semibold">
                 <Cpu size={14} /> inclusionai/ling-3.0-flash-fin:free
               </div>
-              <span className="text-[11px] text-muted-foreground">Vision Fallback: gemini-2.5-flash</span>
             </div>
             <button
               onClick={fetchResults}
@@ -200,8 +199,8 @@ export default function BenchmarkPage() {
         </div>
 
         {/* Per-Document Evaluation Table */}
-        <div className="bg-card/20 border border-border/40 rounded-lg overflow-hidden flex-1 flex flex-col">
-          <div className="p-4 border-b border-border/40 flex items-center justify-between bg-card/40">
+        <div className="bg-card/20 border border-border/40 rounded-lg overflow-hidden mt-8">
+          <div className="p-4 border-b border-border/40 flex items-center justify-between bg-card/40 shrink-0">
             <div className="flex items-center gap-2">
               <Layers size={18} className="text-primary" />
               <h2 className="font-heading font-bold uppercase tracking-wider text-sm">
@@ -213,8 +212,8 @@ export default function BenchmarkPage() {
             </span>
           </div>
 
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left text-sm relative">
               <thead className="bg-muted/20 border-b border-border/30 text-xs font-mono uppercase text-muted-foreground">
                 <tr>
                   <th className="py-3 px-4">Document / Test Case</th>

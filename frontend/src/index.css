@@ -196,3 +196,28 @@
   --input: oklch(0.25 0.02 260);
   --ring: oklch(0.65 0.22 45);
 }
+
+/* Custom Scrollbars for Industrial Aesthetic */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border: 2px solid var(--background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--background);
+}
