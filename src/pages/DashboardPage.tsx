@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SidebarLayout from '../components/SidebarLayout';
 import { useAuth } from '../context/AuthContext';
+import { getDashboardStats, getDocuments, getDocumentDetails } from '../lib/supabaseService';
 import { 
   FileText, 
   ShieldAlert, 
@@ -113,45 +114,25 @@ export default function DashboardPage() {
     if (!session) return;
     setLoading(true);
     try {
-      const token = session.access_token;
-      
-      // Fetch operational metrics
-      const statsRes = await fetch('/api/dashboard/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-      
-      // Fetch real document repository
-      const docsRes = await fetch('/api/documents', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (docsRes.ok) {
-        const docsData = await docsRes.json();
-        const docList = docsData.documents || [];
-        setDocuments(docList);
+      const userId = session.user?.id;
+      const statsData = await getDashboardStats(userId);
+      setStats(statsData);
 
-        // Fetch extracted key fields for the first 5 documents
-        const fieldMap: Record<string, any[]> = {};
-        await Promise.all(
-          docList.slice(0, 6).map(async (doc: any) => {
-            try {
-              const res = await fetch(`/api/documents/${doc.doc_id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-              if (res.ok) {
-                const data = await res.json();
-                fieldMap[doc.doc_id] = data.fields || [];
-              }
-            } catch {
-              fieldMap[doc.doc_id] = [];
-            }
-          })
-        );
-        setDocFields(fieldMap);
-      }
+      const docList = await getDocuments(userId);
+      setDocuments(docList);
+
+      const fieldMap: Record<string, any[]> = {};
+      await Promise.all(
+        docList.slice(0, 6).map(async (doc: any) => {
+          try {
+            const data = await getDocumentDetails(doc.doc_id, userId);
+            fieldMap[doc.doc_id] = data.fields || [];
+          } catch {
+            fieldMap[doc.doc_id] = [];
+          }
+        })
+      );
+      setDocFields(fieldMap);
     } catch (e) {
       console.error('Failed to load dashboard data:', e);
     } finally {

@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://uerpbrrcotbrrxmfzhtw.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlcnBicnJjb3RicnJ4bWZ6aHR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxMzk3OTQsImV4cCI6MjEwNTcxNTc5NH0.SxlGvzpT46NPC0l8Dm-Siz0CirxEBksP73gn2JZABLs'
 
 // In-memory / localStorage fallback when Supabase credentials are not configured
 const STORAGE_KEY = 'docintel_demo_session'

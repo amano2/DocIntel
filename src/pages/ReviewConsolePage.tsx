@@ -5,6 +5,15 @@ import ChatInterface from '../components/ChatInterface';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../context/AuthContext';
+import { 
+  getDocuments, 
+  getDocumentDetails, 
+  getDocumentAuditLog, 
+  uploadAndProcessDocument, 
+  correctField, 
+  resolveAnomaly, 
+  approveDocument 
+} from '../lib/supabaseService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { jsPDF } from 'jspdf';
 import { 
@@ -56,11 +65,7 @@ export default function ReviewConsolePage() {
   const fetchDocs = async () => {
     if (!session) return;
     try {
-      const res = await fetch('/api/documents', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
-      const documentList = data.documents || [];
+      const documentList = await getDocuments(session.user?.id);
       setDocs(documentList);
       
       // Auto-select document from URL or first document if none selected
@@ -81,17 +86,11 @@ export default function ReviewConsolePage() {
   const fetchDocDetails = async (docId: string) => {
     if (!session) return;
     try {
-      const res = await fetch(`/api/documents/${docId}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await res.json();
-      setDocDetails(data);
+      const details = await getDocumentDetails(docId, session.user?.id);
+      setDocDetails(details);
 
-      const auditRes = await fetch(`/api/documents/${docId}/audit-log`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const auditData = await auditRes.json();
-      setAuditLog(auditData.audit_log || []);
+      const logs = await getDocumentAuditLog(docId, session.user?.id);
+      setAuditLog(logs);
     } catch (e) {
       console.error('Failed to load document details:', e);
     }
@@ -139,45 +138,34 @@ export default function ReviewConsolePage() {
 
     setUploading(true);
     const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: formData,
+      const newDocId = await uploadAndProcessDocument(file, session.user?.id, (progress) => {
+        setPipelineProgress(progress);
       });
-      const data = await res.json();
 
       setUploading(false);
-      fetchDocs();
-      if (data.doc_id) {
-        setSelectedDocId(data.doc_id);
+      await fetchDocs();
+      if (newDocId) {
+        setSelectedDocId(newDocId);
+        await fetchDocDetails(newDocId);
       }
+      setTimeout(() => setPipelineProgress(null), 1000);
     } catch (err) {
       console.error('Upload failed:', err);
       setUploading(false);
+      setPipelineProgress(null);
     }
   };
 
   const handleCorrectField = async (fieldId: string, newValue: string) => {
     if (!session || !selectedDocId) return;
     try {
-      const res = await fetch(`/api/documents/${selectedDocId}/correct/${fieldId}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ field_value: newValue }),
-      });
-      if (res.ok) {
-        setEditingFieldId(null);
-        showTemporaryNotice('Field updated and recorded in immutable audit log.');
-        fetchDocDetails(selectedDocId);
-        fetchDocs();
-      }
+      await correctField(selectedDocId, fieldId, newValue, session.user?.id);
+      setEditingFieldId(null);
+      showTemporaryNotice('Field updated and recorded in immutable audit log.');
+      await fetchDocDetails(selectedDocId);
+      await fetchDocs();
     } catch (e) {
       console.error('Correction failed:', e);
     }
@@ -186,15 +174,10 @@ export default function ReviewConsolePage() {
   const handleResolveAnomaly = async (anomalyId: string) => {
     if (!session || !selectedDocId) return;
     try {
-      const res = await fetch(`/api/anomalies/${anomalyId}/resolve`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` }
-      });
-      if (res.ok) {
-        showTemporaryNotice('Anomaly marked as resolved.');
-        fetchDocDetails(selectedDocId);
-        fetchDocs();
-      }
+      await resolveAnomaly(anomalyId, selectedDocId, session.user?.id);
+      showTemporaryNotice('Anomaly marked as resolved.');
+      await fetchDocDetails(selectedDocId);
+      await fetchDocs();
     } catch (e) {
       console.error('Failed to resolve anomaly:', e);
     }
@@ -203,15 +186,10 @@ export default function ReviewConsolePage() {
   const handleApproveDocument = async () => {
     if (!session || !selectedDocId) return;
     try {
-      const res = await fetch(`/api/documents/${selectedDocId}/approve`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` }
-      });
-      if (res.ok) {
-        showTemporaryNotice('Document certified nominal & approved.');
-        fetchDocDetails(selectedDocId);
-        fetchDocs();
-      }
+      await approveDocument(selectedDocId, session.user?.id);
+      showTemporaryNotice('Document certified nominal & approved.');
+      await fetchDocDetails(selectedDocId);
+      await fetchDocs();
     } catch (e) {
       console.error('Failed to approve document:', e);
     }

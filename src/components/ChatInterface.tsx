@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '../context/AuthContext';
+import { getDocuments, getDocumentDetails, queryCorpus } from '../lib/supabaseService';
 import { 
   Send, 
   User, 
@@ -92,13 +93,8 @@ export default function ChatInterface({
     async function loadDocuments() {
       if (!session) return;
       try {
-        const res = await fetch('/api/documents', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setAvailableDocs(data.documents || []);
-        }
+        const docs = await getDocuments(session.user?.id);
+        setAvailableDocs(docs || []);
       } catch (err) {
         console.error('Failed to load documents for chat scope:', err);
       }
@@ -136,25 +132,7 @@ export default function ChatInterface({
     setLoading(true);
 
     try {
-      const payload: any = { query: textToSend };
-      if (selectedDocScope) {
-        payload.doc_ids = [selectedDocScope];
-      }
-
-      const res = await fetch('/api/query', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: Query execution failed.`);
-      }
-
-      const data = await res.json();
+      const data = await queryCorpus(textToSend, selectedDocScope || undefined, session.user?.id);
 
       // Resolve citations with document list if backend only sent IDs
       let resolvedCitations: Citation[] = data.citations || [];
@@ -220,13 +198,8 @@ export default function ChatInterface({
     setInspectLoading(true);
     setInspectedDoc(null);
     try {
-      const res = await fetch(`/api/documents/${docId}`, {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setInspectedDoc(data);
-      }
+      const data = await getDocumentDetails(docId, session?.user?.id);
+      setInspectedDoc(data);
     } catch (e) {
       console.error('Failed to load doc detail:', e);
     } finally {
