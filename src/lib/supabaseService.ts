@@ -439,7 +439,7 @@ export async function uploadAndProcessDocument(
   await new Promise((r) => setTimeout(r, 600));
 
   // Stage 3: EXTRACTION
-  onProgress({ stage: 'EXTRACTION', percent: 70, label: 'Structured field extraction with confidence scores...' });
+  onProgress({ stage: 'EXTRACTION', percent: 70, label: 'Running AI back-office structured extraction...' });
 
   const generatedFields: Array<{
     doc_id: string;
@@ -450,59 +450,116 @@ export async function uploadAndProcessDocument(
     source: string;
   }> = [];
 
-  let hasAnomaly = false;
-  let anomalyData: {
+  const anomaliesToInsert: Array<{
+    doc_id: string;
+    user_id: string;
     rule_name: string;
     description: string;
     severity: 'high' | 'medium' | 'low';
-  } | null = null;
+    status: 'open';
+  }> = [];
 
-  if (docType === 'invoice') {
-    const invNum = 'INV-' + Math.floor(1000 + Math.random() * 9000);
-    const isMathMismatch = lower.includes('math') || Math.random() < 0.2;
-    const subtotalNum = 1250;
-    const taxNum = 100;
-    const totalNum = isMathMismatch ? 1450 : 1350;
+  // Attempt live Vercel /api/extract serverless call (OpenRouter vision/LLM)
+  try {
+    let fileText = '';
+    try {
+      fileText = await file.text();
+    } catch {}
 
-    generatedFields.push(
-      { doc_id: docId, user_id: userId, field_name: 'vendor_name', field_value: 'Apex Industrial Logistics', confidence: 0.98, source: 'Header Banner' },
-      { doc_id: docId, user_id: userId, field_name: 'invoice_number', field_value: invNum, confidence: 0.99, source: 'Invoice Box' },
-      { doc_id: docId, user_id: userId, field_name: 'date', field_value: new Date().toISOString().split('T')[0], confidence: 0.96, source: 'Date Header' },
-      { doc_id: docId, user_id: userId, field_name: 'subtotal', field_value: `$${subtotalNum.toFixed(2)}`, confidence: 0.95, source: 'Subtotal Row' },
-      { doc_id: docId, user_id: userId, field_name: 'tax', field_value: `$${taxNum.toFixed(2)}`, confidence: 0.68, source: 'Calculated Tax Line' },
-      { doc_id: docId, user_id: userId, field_name: 'total', field_value: `$${totalNum.toFixed(2)}`, confidence: 0.98, source: 'Total Payable' }
-    );
+    const res = await fetch('/api/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename,
+        doc_type: docType,
+        text_content: fileText.slice(0, 4000),
+      }),
+    });
 
-    if (isMathMismatch) {
-      hasAnomaly = true;
-      anomalyData = {
-        rule_name: 'Math Mismatch',
-        description: `Subtotal ($${subtotalNum.toFixed(2)}) + Tax ($${taxNum.toFixed(2)}) = $${(subtotalNum + taxNum).toFixed(2)} does not equal Stated Total ($${totalNum.toFixed(2)}). Variance of $${Math.abs(totalNum - (subtotalNum + taxNum)).toFixed(2)}.`,
-        severity: 'high',
-      };
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.fields) && data.fields.length > 0) {
+        data.fields.forEach((f: any) => {
+          generatedFields.push({
+            doc_id: docId,
+            user_id: userId,
+            field_name: f.field_name,
+            field_value: String(f.field_value),
+            confidence: typeof f.confidence === 'number' ? f.confidence : 0.95,
+            source: f.source || 'AI Extraction Engine',
+          });
+        });
+      }
+      if (Array.isArray(data.anomalies) && data.anomalies.length > 0) {
+        data.anomalies.forEach((a: any) => {
+          anomaliesToInsert.push({
+            doc_id: docId,
+            user_id: userId,
+            rule_name: a.rule_name || 'Flagged Discrepancy',
+            description: a.description || 'Discrepancy identified during extraction.',
+            severity: a.severity || 'high',
+            status: 'open',
+          });
+        });
+      }
     }
-  } else if (docType === 'contract') {
-    const isUnsigned = lower.includes('unsigned') || Math.random() < 0.25;
-    generatedFields.push(
-      { doc_id: docId, user_id: userId, field_name: 'parties', field_value: 'Horizon Dynamics & Vanguard Operations', confidence: 0.95, source: 'Recitals' },
-      { doc_id: docId, user_id: userId, field_name: 'effective_date', field_value: new Date().toISOString().split('T')[0], confidence: 0.93, source: 'Section 1.1' },
-      { doc_id: docId, user_id: userId, field_name: 'governing_law', field_value: 'State of New York', confidence: 0.91, source: 'Section 14' },
-      { doc_id: docId, user_id: userId, field_name: 'signature_status', field_value: isUnsigned ? 'unsigned' : 'signed', confidence: 0.98, source: 'Execution Page' }
-    );
+  } catch (err) {
+    console.warn('/api/extract serverless call skipped or offline, using fallback:', err);
+  }
 
-    if (isUnsigned) {
-      hasAnomaly = true;
-      anomalyData = {
-        rule_name: 'Unsigned Contract',
-        description: 'The contract document appears to lack authorized execution signatures.',
-        severity: 'high',
-      };
+  // Fallback if API was unavailable or returned empty
+  if (generatedFields.length === 0) {
+    if (docType === 'invoice') {
+      const invNum = 'INV-' + Math.floor(1000 + Math.random() * 9000);
+      const isMathMismatch = lower.includes('math') || Math.random() < 0.2;
+      const subtotalNum = 1250;
+      const taxNum = 100;
+      const totalNum = isMathMismatch ? 1450 : 1350;
+
+      generatedFields.push(
+        { doc_id: docId, user_id: userId, field_name: 'vendor_name', field_value: 'Apex Industrial Logistics', confidence: 0.98, source: 'Header Banner' },
+        { doc_id: docId, user_id: userId, field_name: 'invoice_number', field_value: invNum, confidence: 0.99, source: 'Invoice Box' },
+        { doc_id: docId, user_id: userId, field_name: 'date', field_value: new Date().toISOString().split('T')[0], confidence: 0.96, source: 'Date Header' },
+        { doc_id: docId, user_id: userId, field_name: 'subtotal', field_value: `$${subtotalNum.toFixed(2)}`, confidence: 0.95, source: 'Subtotal Row' },
+        { doc_id: docId, user_id: userId, field_name: 'tax', field_value: `$${taxNum.toFixed(2)}`, confidence: 0.68, source: 'Calculated Tax Line' },
+        { doc_id: docId, user_id: userId, field_name: 'total', field_value: `$${totalNum.toFixed(2)}`, confidence: 0.98, source: 'Total Payable' }
+      );
+
+      if (isMathMismatch) {
+        anomaliesToInsert.push({
+          doc_id: docId,
+          user_id: userId,
+          rule_name: 'Math Mismatch',
+          description: `Subtotal ($${subtotalNum.toFixed(2)}) + Tax ($${taxNum.toFixed(2)}) = $${(subtotalNum + taxNum).toFixed(2)} does not equal Stated Total ($${totalNum.toFixed(2)}). Variance of $${Math.abs(totalNum - (subtotalNum + taxNum)).toFixed(2)}.`,
+          severity: 'high',
+          status: 'open',
+        });
+      }
+    } else if (docType === 'contract') {
+      const isUnsigned = lower.includes('unsigned') || Math.random() < 0.25;
+      generatedFields.push(
+        { doc_id: docId, user_id: userId, field_name: 'parties', field_value: 'Horizon Dynamics & Vanguard Operations', confidence: 0.95, source: 'Recitals' },
+        { doc_id: docId, user_id: userId, field_name: 'effective_date', field_value: new Date().toISOString().split('T')[0], confidence: 0.93, source: 'Section 1.1' },
+        { doc_id: docId, user_id: userId, field_name: 'governing_law', field_value: 'State of New York', confidence: 0.91, source: 'Section 14' },
+        { doc_id: docId, user_id: userId, field_name: 'signature_status', field_value: isUnsigned ? 'unsigned' : 'signed', confidence: 0.98, source: 'Execution Page' }
+      );
+
+      if (isUnsigned) {
+        anomaliesToInsert.push({
+          doc_id: docId,
+          user_id: userId,
+          rule_name: 'Unsigned Contract',
+          description: 'The contract document appears to lack authorized execution signatures.',
+          severity: 'high',
+          status: 'open',
+        });
+      }
+    } else {
+      generatedFields.push(
+        { doc_id: docId, user_id: userId, field_name: 'document_title', field_value: filename.replace(/\.[^/.]+$/, ''), confidence: 0.96, source: 'Document Header' },
+        { doc_id: docId, user_id: userId, field_name: 'status', field_value: 'Verified Active', confidence: 0.92, source: 'Section 1' }
+      );
     }
-  } else {
-    generatedFields.push(
-      { doc_id: docId, user_id: userId, field_name: 'document_title', field_value: filename.replace(/\.[^/.]+$/, ''), confidence: 0.96, source: 'Document Header' },
-      { doc_id: docId, user_id: userId, field_name: 'status', field_value: 'Verified Active', confidence: 0.92, source: 'Section 1' }
-    );
   }
 
   // Insert extracted fields into Supabase
@@ -512,15 +569,8 @@ export async function uploadAndProcessDocument(
   onProgress({ stage: 'ANOMALY_DETECTION', percent: 85, label: 'Running deterministic validation rules & heuristic anomaly intercept...' });
   await new Promise((r) => setTimeout(r, 600));
 
-  if (hasAnomaly && anomalyData) {
-    await supabase.from('anomalies').insert({
-      doc_id: docId,
-      user_id: userId,
-      rule_name: anomalyData.rule_name,
-      description: anomalyData.description,
-      severity: anomalyData.severity,
-      status: 'open',
-    });
+  if (anomaliesToInsert.length > 0) {
+    await supabase.from('anomalies').insert(anomaliesToInsert);
   }
 
   // Stage 5: INDEXING & COMPLETION
@@ -577,6 +627,37 @@ export async function queryCorpus(
     const lowerQuery = query.toLowerCase();
     let answer = '';
     let matchingDocs = targetDocs;
+
+    // Attempt live OpenRouter LLM RAG via Vercel serverless /api/query
+    try {
+      const apiRes = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          documents: targetDocs.map((d) => ({
+            doc_id: d.doc_id,
+            filename: d.filename,
+            doc_type: d.doc_type,
+            extracted_text: d.extracted_text,
+            fields: fieldsList.filter((f) => f.doc_id === d.doc_id),
+          })),
+        }),
+      });
+
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (apiData.answer && typeof apiData.answer === 'string') {
+          return {
+            answer: apiData.answer,
+            cited_doc_ids: apiData.cited_doc_ids || [],
+            citations: apiData.citations || [],
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('/api/query serverless call skipped or offline, using fallback:', e);
+    }
 
     if (lowerQuery.includes('unpaid') || lowerQuery.includes('due') || lowerQuery.includes('invoice') || lowerQuery.includes('tax') || lowerQuery.includes('subtotal')) {
       const invoices = targetDocs.filter((d) => d.doc_type === 'invoice');
