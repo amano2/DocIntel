@@ -2,6 +2,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 .env
+.env.local
+.env*.local
+frontend/.env.local
 .venv/
 env/
 venv/
