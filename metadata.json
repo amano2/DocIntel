@@ -1,0 +1,8 @@
+{
+  "name": "DocIntel - Multimodal Document Intelligence Agent",
+  "description": "Enterprise Back-Office SaaS for automated invoice, contract, and compliance document extraction with anomaly detection and RAG Q&A.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
