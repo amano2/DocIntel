@@ -81,9 +81,10 @@ ${corpusContext.slice(0, 8000)}
 Provide a concise, professional audit response with bullet points and clear citations.`;
 
     for (const model of RAG_MODELS) {
+      let timeoutId: NodeJS.Timeout | undefined;
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        timeoutId = setTimeout(() => controller.abort(), 12000);
 
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -119,7 +120,7 @@ Provide a concise, professional audit response with bullet points and clear cita
           }
         }
       } catch (e) {
-        // Also ensure timeout is cleared if fetch fails
+        if (timeoutId) clearTimeout(timeoutId);
         continue;
       }
     }
