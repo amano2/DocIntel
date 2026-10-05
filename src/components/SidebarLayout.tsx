@@ -167,6 +167,11 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               <LogOut size={16} />
             </button>
           </div>
+          {!isCollapsed && (
+            <div className="mt-3 pt-2 border-t border-border/50 text-[10px] font-mono text-muted-foreground tracking-wider lowercase">
+              developed by <span className="text-primary font-bold">&lt;/aman.dev/&gt;</span>
+            </div>
+          )}
         </div>
       </aside>
 

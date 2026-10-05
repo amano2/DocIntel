@@ -418,7 +418,13 @@ export default function LandingPage() {
         </div>
         
         <div className="pt-8 border-t-2 border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs uppercase tracking-widest text-muted-foreground">
-          <div>&copy; 2026 DocIntel Systems Inc. All rights reserved.</div>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <span>&copy; 2026 DocIntel Systems Inc. All rights reserved.</span>
+            <span className="hidden sm:inline text-border">|</span>
+            <span className="text-primary font-mono font-bold lowercase tracking-normal">
+              developed by <span className="text-foreground font-black">&lt;/aman.dev/&gt;</span>
+            </span>
+          </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div> API Status: Nominal</span>
             <span>Latency: 124ms</span>
