@@ -109,7 +109,9 @@ Provide a concise, professional audit response with bullet points and clear cita
           if (answer) {
             // Find cited IDs
             documents.forEach((d) => {
-              if (answer.includes(d.doc_id) || answer.toLowerCase().includes(d.filename.toLowerCase())) {
+              const docIdMatch = d.doc_id && answer.includes(d.doc_id);
+              const filenameMatch = d.filename && answer.toLowerCase().includes(d.filename.toLowerCase());
+              if (docIdMatch || filenameMatch) {
                 citedDocIds.push(d.doc_id);
               }
             });
@@ -117,6 +119,7 @@ Provide a concise, professional audit response with bullet points and clear cita
           }
         }
       } catch (e) {
+        // Also ensure timeout is cleared if fetch fails
         continue;
       }
     }
@@ -124,11 +127,11 @@ Provide a concise, professional audit response with bullet points and clear cita
 
   // Heuristic Fallback
   if (!answer) {
-    const qLower = query.toLowerCase();
+    const qLower = (query || '').toLowerCase();
     const matched = documents.filter((d) => {
-      const matchName = d.filename.toLowerCase().includes(qLower);
-      const matchType = d.doc_type.toLowerCase().includes(qLower);
-      const matchField = (d.fields || []).some((f) => f.field_value.toLowerCase().includes(qLower));
+      const matchName = (d.filename || '').toLowerCase().includes(qLower);
+      const matchType = (d.doc_type || '').toLowerCase().includes(qLower);
+      const matchField = (d.fields || []).some((f) => String(f.field_value || '').toLowerCase().includes(qLower));
       return matchName || matchType || matchField;
     });
 
