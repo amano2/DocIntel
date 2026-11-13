@@ -20,6 +20,7 @@ import {
   X
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import MarkdownMessage from './MarkdownMessage';
 
 export interface Citation {
   doc_id: string;
@@ -334,8 +335,8 @@ export default function ChatInterface({
                         : 'bg-card/95 backdrop-blur-sm text-foreground border-border shadow-[3px_3px_0px_0px_var(--color-primary)]'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap font-mono break-words break-all">
-                      {msg.content}
+                    <div className="font-mono text-xs sm:text-sm leading-relaxed max-w-full overflow-hidden">
+                      <MarkdownMessage content={msg.content} isUser={isUser} />
                     </div>
 
                     {/* Copy action on hover */}
