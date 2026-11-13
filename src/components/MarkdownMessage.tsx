@@ -201,3 +201,4 @@ export default function MarkdownMessage({ content, isUser = false }: MarkdownMes
 
   return <div className="space-y-0.5 max-w-full overflow-hidden">{elements}</div>;
 }
+
