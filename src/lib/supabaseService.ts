@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { synthesizeRAGAnswer, type RAGDocument } from './ragEngine';
 
 export interface DocumentItem {
   doc_id: string;
@@ -624,9 +625,15 @@ export async function queryCorpus(
       .select('*');
     const anomList = (allAnomalies || []) as Anomaly[];
 
-    const lowerQuery = query.toLowerCase();
-    let answer = '';
-    let matchingDocs = targetDocs;
+    // Construct structured RAG documents
+    const ragDocs: RAGDocument[] = targetDocs.map((d) => ({
+      doc_id: d.doc_id,
+      filename: d.filename,
+      doc_type: d.doc_type,
+      extracted_text: d.extracted_text,
+      fields: fieldsList.filter((f) => f.doc_id === d.doc_id),
+      anomalies: anomList.filter((a) => a.doc_id === d.doc_id),
+    }));
 
     // Attempt live OpenRouter LLM RAG via Vercel serverless /api/query
     try {
@@ -635,19 +642,26 @@ export async function queryCorpus(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
-          documents: targetDocs.map((d) => ({
-            doc_id: d.doc_id,
-            filename: d.filename,
-            doc_type: d.doc_type,
-            extracted_text: d.extracted_text,
-            fields: fieldsList.filter((f) => f.doc_id === d.doc_id),
-          })),
+          documents: ragDocs,
         }),
       });
 
       if (apiRes.ok) {
         const apiData = await apiRes.json();
         if (apiData.answer && typeof apiData.answer === 'string') {
+          // Log query in Supabase query_log
+          if (userId) {
+            try {
+              await supabase.from('query_log').insert({
+                user_id: userId,
+                question: query,
+                answer: apiData.answer,
+                cited_doc_ids: apiData.cited_doc_ids || [],
+              });
+            } catch (logErr) {
+              console.warn('Could not record query log:', logErr);
+            }
+          }
           return {
             answer: apiData.answer,
             cited_doc_ids: apiData.cited_doc_ids || [],
@@ -656,67 +670,11 @@ export async function queryCorpus(
         }
       }
     } catch (e) {
-      console.warn('/api/query serverless call skipped or offline, using fallback:', e);
+      console.warn('/api/query serverless call skipped or offline, using dynamic fallback:', e);
     }
 
-    if (lowerQuery.includes('unpaid') || lowerQuery.includes('due') || lowerQuery.includes('invoice') || lowerQuery.includes('tax') || lowerQuery.includes('subtotal')) {
-      const invoices = targetDocs.filter((d) => d.doc_type === 'invoice');
-      matchingDocs = invoices.length > 0 ? invoices : targetDocs;
-
-      answer = `Based on your ingested document corpus, we identified ${invoices.length} invoices:\n\n` +
-        invoices.map((inv) => {
-          const fields = fieldsList.filter((f) => f.doc_id === inv.doc_id);
-          const vendor = fields.find((f) => f.field_name === 'vendor_name')?.field_value || 'Unknown Vendor';
-          const total = fields.find((f) => f.field_name === 'total')?.field_value || 'N/A';
-          const invNum = fields.find((f) => f.field_name === 'invoice_number')?.field_value || 'N/A';
-          const terms = fields.find((f) => f.field_name === 'payment_terms')?.field_value || 'Standard';
-          const hasFlag = anomList.some((a) => a.doc_id === inv.doc_id && a.status === 'open');
-          return `• ${vendor} (Invoice #${invNum}) - Stated Total: ${total} | Terms: ${terms} [Status: ${hasFlag ? '⚠️ FLAGGED ANOMALY' : '✓ VERIFIED'}]`;
-        }).join('\n') +
-        `\n\nAudit Alert: Notice that invoice_anomaly_math.pdf contains a calculation error (Subtotal + Tax does not match Grand Total), and invoice_duplicate.pdf shares the same invoice number (INV-2024-1337).`;
-    } else if (lowerQuery.includes('contract') || lowerQuery.includes('signed') || lowerQuery.includes('parties') || lowerQuery.includes('agreement') || lowerQuery.includes('law')) {
-      const contracts = targetDocs.filter((d) => d.doc_type === 'contract');
-      matchingDocs = contracts.length > 0 ? contracts : targetDocs;
-
-      answer = `Contract Analysis across your corpus:\n\n` +
-        contracts.map((c) => {
-          const fields = fieldsList.filter((f) => f.doc_id === c.doc_id);
-          const parties = fields.find((f) => f.field_name === 'parties')?.field_value || 'Parties Not Extracted';
-          const status = fields.find((f) => f.field_name === 'signature_status')?.field_value || 'unknown';
-          const law = fields.find((f) => f.field_name === 'governing_law')?.field_value || 'Unspecified';
-          const isUnsigned = status.toLowerCase() === 'unsigned';
-          return `• ${c.filename}:\n  - Parties: ${parties}\n  - Governing Law: ${law}\n  - Execution Status: ${isUnsigned ? '⚠️ UNSIGNED (Flagged for legal review)' : '✓ Fully Executed & Signed'}`;
-        }).join('\n\n');
-    } else if (lowerQuery.includes('anomaly') || lowerQuery.includes('risk') || lowerQuery.includes('flag') || lowerQuery.includes('issue') || lowerQuery.includes('error')) {
-      const openAnoms = anomList.filter((a) => a.status === 'open');
-      answer = `Risk & Anomaly Report (${openAnoms.length} open items identified across your documents):\n\n` +
-        openAnoms.map((a, i) => {
-          const doc = targetDocs.find((d) => d.doc_id === a.doc_id);
-          return `${i + 1}. [${a.severity.toUpperCase()} RISK] ${a.rule_name} (${doc?.filename || a.doc_id}):\n   ${a.description}`;
-        }).join('\n\n');
-    } else {
-      answer = `Corpus Interrogation Result for "${query}":\n\n` +
-        `Searched across ${targetDocs.length} indexed documents (Invoices, MSAs, Purchase Orders, and GDPR Audits).\n` +
-        `Summary findings:\n` +
-        `• Invoices: Northwind Industrial Supply ($4,838.40, verified), Globex Corp ($1,050.00, flagged with math discrepancy and duplicate record).\n` +
-        `• Contracts: Wayne Enterprises / Acme Consulting (active, signed), Stark Industries / Oscorp (unsigned draft pending execution).\n` +
-        `• Procurement: PO-2024-5599 for Precision Machining ($65,700.00, exceeds approval cap).\n` +
-        `• Compliance: Q3 GDPR Compliance Audit flagged partially compliant.`;
-    }
-
-    const selectedDocs = matchingDocs.slice(0, 3);
-    const citedDocIds = selectedDocs.map((d) => d.doc_id);
-
-    const citations = selectedDocs.map((d) => {
-      const fields = fieldsList.filter((f) => f.doc_id === d.doc_id);
-      const sampleFields = fields.slice(0, 3).map((f) => `${f.field_name}: ${f.field_value}`).join(', ');
-      return {
-        doc_id: d.doc_id,
-        filename: d.filename,
-        doc_type: d.doc_type,
-        snippet: sampleFields || d.extracted_text || 'Document indexed in corpus',
-      };
-    });
+    // Dynamic intelligent RAG fallback
+    const ragResult = synthesizeRAGAnswer(query, ragDocs, anomList);
 
     // 4. Log query in Supabase query_log
     if (userId) {
@@ -724,19 +682,15 @@ export async function queryCorpus(
         await supabase.from('query_log').insert({
           user_id: userId,
           question: query,
-          answer,
-          cited_doc_ids: citedDocIds,
+          answer: ragResult.answer,
+          cited_doc_ids: ragResult.cited_doc_ids,
         });
       } catch (logErr) {
         console.warn('Could not record query log:', logErr);
       }
     }
 
-    return {
-      answer,
-      cited_doc_ids: citedDocIds,
-      citations,
-    };
+    return ragResult;
   } catch (err: any) {
     console.error('Failed to query corpus:', err);
     return {

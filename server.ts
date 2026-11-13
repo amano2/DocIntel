@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import { synthesizeRAGAnswer } from './src/lib/ragEngine';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -635,39 +636,49 @@ app.post('/api/upload', upload.single('file'), async (req: Request, res: Respons
 
 // 9. RAG Query
 app.post('/api/query', async (req: Request, res: Response) => {
-  const { query, doc_ids } = req.body;
+  const { query, doc_ids, documents: reqDocs } = req.body;
   if (!query) {
     return res.status(400).json({ error: 'Query is required' });
   }
 
   // Filter corpus
-  const targetDocs = doc_ids && doc_ids.length > 0
-    ? documents.filter((d) => doc_ids.includes(d.doc_id))
-    : documents;
+  let targetDocs: any[] = [];
+  if (reqDocs && Array.isArray(reqDocs) && reqDocs.length > 0) {
+    targetDocs = reqDocs;
+  } else {
+    targetDocs = (doc_ids && doc_ids.length > 0
+      ? documents.filter((d) => doc_ids.includes(d.doc_id))
+      : documents
+    ).map((d) => ({
+      ...d,
+      fields: extractedFields.filter((f) => f.doc_id === d.doc_id),
+      anomalies: anomalies.filter((a) => a.doc_id === d.doc_id),
+    }));
+  }
 
   const corpusContext = targetDocs
     .map((d) => {
-      const fields = extractedFields.filter((f) => f.doc_id === d.doc_id);
-      const fieldSummary = fields.map((f) => `${f.field_name}: ${f.field_value}`).join(' | ');
-      return `[Document ID: ${d.doc_id} | File: ${d.filename} | Type: ${d.doc_type}]\nContent: ${d.text_content || ''}\nExtracted Fields: ${fieldSummary}`;
+      const fields = d.fields || extractedFields.filter((f) => f.doc_id === d.doc_id);
+      const fieldSummary = fields.map((f: any) => `${f.field_name}: ${f.field_value}`).join(' | ');
+      return `[Document ID: ${d.doc_id} | File: ${d.filename} | Type: ${d.doc_type}]\nContent: ${d.extracted_text || d.text_content || ''}\nExtracted Fields: ${fieldSummary}`;
     })
     .join('\n\n');
 
   // Helper to build citation metadata objects
-  const buildCitations = (docsList: DocumentItem[]) => {
+  const buildCitations = (docsList: any[]) => {
     return docsList.map((d) => {
-      const fields = extractedFields.filter((f) => f.doc_id === d.doc_id);
-      const sampleFields = fields.slice(0, 3).map((f) => `${f.field_name}: ${f.field_value}`).join(', ');
+      const fields = d.fields || extractedFields.filter((f) => f.doc_id === d.doc_id);
+      const sampleFields = fields.slice(0, 3).map((f: any) => `${f.field_name}: ${f.field_value}`).join(', ');
       return {
         doc_id: d.doc_id,
         filename: d.filename,
         doc_type: d.doc_type,
-        snippet: sampleFields || d.text_content || 'Document indexed in corpus',
+        snippet: sampleFields || d.extracted_text || d.text_content || 'Document indexed in corpus',
       };
     });
   };
 
-  // If Gemini API is configured and operational, use it for rich synthesis
+  // 1. If Gemini API is configured and operational, use it for rich synthesis
   if (ai && geminiEnabled) {
     try {
       const response = await ai.models.generateContent({
@@ -701,91 +712,83 @@ ${query}`,
         citations: buildCitations(cited),
       });
     } catch (e: any) {
-      // If API key is invalid or rate limited, disable further calls and use deterministic synthesis
       if (e?.status === 400 || e?.message?.includes('API key not valid') || e?.message?.includes('API_KEY_INVALID')) {
         geminiEnabled = false;
       }
     }
   }
 
-  // Deterministic Intelligent RAG Synthesis
-  const lowerQuery = query.toLowerCase();
-  let answer = '';
-  let matchingDocs = targetDocs;
+  // 2. Try OpenRouter if API key exists in environment
+  const openRouterKey = (process.env.OPENROUTER_API_KEY || '').replace(/["']/g, '').trim();
+  if (openRouterKey && openRouterKey.length > 10 && !openRouterKey.includes('placeholder')) {
+    const prompt = `You are DocIntel, an autonomous enterprise document intelligence agent.
+Answer the user question strictly using the provided document corpus below.
+Always cite the relevant Document IDs (e.g. [doc-001]) when stating facts, amounts, or statuses.
 
-  if (lowerQuery.includes('unpaid') || lowerQuery.includes('due') || lowerQuery.includes('invoice') || lowerQuery.includes('tax') || lowerQuery.includes('subtotal')) {
-    const invoices = targetDocs.filter((d) => d.doc_type === 'invoice');
-    matchingDocs = invoices.length > 0 ? invoices : targetDocs;
-    answer = `Based on the ingested document corpus, we identified ${invoices.length} invoices:\n\n` +
-      invoices.map((inv) => {
-        const fields = extractedFields.filter((f) => f.doc_id === inv.doc_id);
-        const vendor = fields.find((f) => f.field_name === 'vendor_name')?.field_value || 'Unknown Vendor';
-        const total = fields.find((f) => f.field_name === 'total')?.field_value || 'N/A';
-        const invNum = fields.find((f) => f.field_name === 'invoice_number')?.field_value || 'N/A';
-        const terms = fields.find((f) => f.field_name === 'payment_terms')?.field_value || 'Standard';
-        const hasFlag = anomalies.some((a) => a.doc_id === inv.doc_id);
-        return `• ${vendor} (Invoice #${invNum}) - Stated Total: ${total} | Terms: ${terms} [Status: ${hasFlag ? '⚠️ FLAGGED ANOMALY' : '✓ VERIFIED'}]`;
-      }).join('\n') +
-      `\n\nAudit Alert: Notice that invoice_anomaly_math.pdf contains a calculation error (Subtotal + Tax does not match Grand Total), and invoice_duplicate.pdf shares the same invoice number (INV-2024-1337).`;
-  } else if (lowerQuery.includes('contract') || lowerQuery.includes('signed') || lowerQuery.includes('parties') || lowerQuery.includes('agreement') || lowerQuery.includes('law')) {
-    const contracts = targetDocs.filter((d) => d.doc_type === 'contract');
-    matchingDocs = contracts.length > 0 ? contracts : targetDocs;
-    answer = `Contract Analysis across corpus:\n\n` +
-      contracts.map((c) => {
-        const fields = extractedFields.filter((f) => f.doc_id === c.doc_id);
-        const parties = fields.find((f) => f.field_name === 'parties')?.field_value || 'Parties Not Extracted';
-        const status = fields.find((f) => f.field_name === 'signature_status')?.field_value || 'unknown';
-        const law = fields.find((f) => f.field_name === 'governing_law')?.field_value || 'Unspecified';
-        const isUnsigned = status.toLowerCase() === 'unsigned';
-        return `• ${c.filename}:\n  - Parties: ${parties}\n  - Governing Law: ${law}\n  - Execution Status: ${isUnsigned ? '⚠️ UNSIGNED (Flagged for legal review)' : '✓ Fully Executed & Signed'}`;
-      }).join('\n\n');
-  } else if (lowerQuery.includes('po') || lowerQuery.includes('purchase') || lowerQuery.includes('50,000') || lowerQuery.includes('threshold') || lowerQuery.includes('order')) {
-    const pos = targetDocs.filter((d) => d.doc_type === 'purchase_order' || d.filename.includes('po'));
-    matchingDocs = pos.length > 0 ? pos : targetDocs;
-    answer = `Purchase Order & Threshold Interrogation:\n\n` +
-      pos.map((p) => {
-        const fields = extractedFields.filter((f) => f.doc_id === p.doc_id);
-        const poNum = fields.find((f) => f.field_name === 'po_number')?.field_value || 'PO-2024-5599';
-        const vendor = fields.find((f) => f.field_name === 'vendor_name')?.field_value || 'Precision Machining Ltd.';
-        const amount = fields.find((f) => f.field_name === 'total_amount')?.field_value || '$65,700.00';
-        return `• ${p.filename} (${poNum}):\n  - Vendor: ${vendor}\n  - Authorized Total: ${amount}\n  - Policy Alert: Exceeds standard $50,000 corporate procurement threshold. Requires Level 2 VP sign-off.`;
-      }).join('\n\n');
-  } else if (lowerQuery.includes('compliance') || lowerQuery.includes('gdpr') || lowerQuery.includes('audit')) {
-    const compDocs = targetDocs.filter((d) => d.doc_type === 'compliance_doc' || d.filename.includes('compliance'));
-    matchingDocs = compDocs.length > 0 ? compDocs : targetDocs;
-    answer = `Regulatory Compliance & Audit Evaluation:\n\n` +
-      compDocs.map((cd) => {
-        const fields = extractedFields.filter((f) => f.doc_id === cd.doc_id);
-        const title = fields.find((f) => f.field_name === 'document_title')?.field_value || cd.filename;
-        const auth = fields.find((f) => f.field_name === 'issuing_authority')?.field_value || 'Internal Data Protection Office';
-        const compStatus = fields.find((f) => f.field_name === 'compliance_status')?.field_value || 'Partially Compliant';
-        return `• ${title}:\n  - Authority: ${auth}\n  - Status: ${compStatus.toUpperCase()}\n  - Action Required: Article 30 Records of Processing Activities documentation needs remediation prior to next quarter.`;
-      }).join('\n\n');
-  } else if (lowerQuery.includes('anomal') || lowerQuery.includes('flag') || lowerQuery.includes('risk') || lowerQuery.includes('discrepancy')) {
-    const openAnoms = anomalies.filter((a) => a.status === 'open');
-    matchingDocs = targetDocs.filter((d) => openAnoms.some((a) => a.doc_id === d.doc_id));
-    answer = `Security and Liability Anomaly Intercept Report:\n` +
-      `Identified ${openAnoms.length} active risks in the audited corpus:\n\n` +
-      openAnoms.map((a, i) => {
-        const doc = documents.find((d) => d.doc_id === a.doc_id);
-        return `${i + 1}. [${a.severity.toUpperCase()} RISK] ${a.rule_name} (${doc?.filename || a.doc_id}):\n   ${a.description}`;
-      }).join('\n\n');
-  } else {
-    answer = `Corpus Interrogation Result for "${query}":\n\n` +
-      `Searched across ${targetDocs.length} indexed documents (Invoices, MSAs, Purchase Orders, and GDPR Audits).\n` +
-      `Summary findings:\n` +
-      `• Invoices: Northwind Industrial Supply ($4,838.40, verified), Globex Corp ($1,050.00, flagged with math discrepancy and duplicate record).\n` +
-      `• Contracts: Wayne Enterprises / Acme Consulting (active, signed), Stark Industries / Oscorp (unsigned draft pending execution).\n` +
-      `• Procurement: PO-2024-5599 for Precision Machining ($65,700.00, exceeds approval cap).\n` +
-      `• Compliance: Q3 GDPR Compliance Audit flagged partially compliant.`;
+USER QUESTION: "${query}"
+
+DOCUMENT CORPUS:
+${corpusContext.slice(0, 8000)}
+
+Provide a concise, professional answer with bullet points and clear citations.`;
+
+    const candidateModels = [
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'deepseek/deepseek-r1:free',
+      'google/gemini-2.0-flash-lite-preview-02-05:free',
+      'mistralai/mistral-small-24b-instruct-2501:free',
+    ];
+
+    for (const model of candidateModels) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openRouterKey}`,
+            'HTTP-Referer': 'https://docintel.vercel.app',
+            'X-Title': 'DocIntel RAG Q&A',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const answer = data.choices?.[0]?.message?.content || '';
+          if (answer) {
+            const citedDocIds: string[] = [];
+            targetDocs.forEach((d) => {
+              if (answer.includes(d.doc_id) || answer.toLowerCase().includes((d.filename || '').toLowerCase())) {
+                citedDocIds.push(d.doc_id);
+              }
+            });
+            const citedDocs = targetDocs.filter((d) => citedDocIds.includes(d.doc_id));
+            return res.json({
+              answer,
+              cited_doc_ids: citedDocIds.length > 0 ? citedDocIds : targetDocs.slice(0, 3).map((d) => d.doc_id),
+              citations: buildCitations(citedDocs.length > 0 ? citedDocs : targetDocs.slice(0, 3)),
+            });
+          }
+        }
+      } catch (err) {
+        continue;
+      }
+    }
   }
 
-  const selectedDocs = matchingDocs.slice(0, 3);
-  res.json({
-    answer,
-    cited_doc_ids: selectedDocs.map((d) => d.doc_id),
-    citations: buildCitations(selectedDocs),
-  });
+  // 3. Fallback to Dynamic Deterministic RAG Engine
+  const ragResult = synthesizeRAGAnswer(query, targetDocs, anomalies);
+  return res.json(ragResult);
 });
 
 // ── Dev Server / Production Serving ──────────────────────────────────────────
