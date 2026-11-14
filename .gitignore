@@ -12,3 +12,17 @@ node_modules/
 dist/
 faiss_index.bin
 faiss_metadata.json
+
+# Markdown files: exclude all markdown files (including GEMINI.md), allowing only README files
+*.md
+**/*.md
+GEMINI.md
+gemini.md
+.agents/
+!README.md
+!README*.md
+!**/README.md
+!**/README*.md
+!readme.md
+!**/readme.md
+
