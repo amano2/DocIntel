@@ -773,23 +773,58 @@ export default function ReviewConsolePage() {
             <div className="space-y-6 max-w-6xl mx-auto w-full">
               
               {/* Document Overview Dossier Header */}
-              <div className="p-5 industrial-panel border-2 border-border space-y-4">
-                {/* Meta Badges Row + Action Buttons Row */}
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pb-3 border-b border-border/60">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="whitespace-nowrap px-2 py-0.5 border border-primary text-primary font-mono text-[10px] font-bold uppercase tracking-widest shrink-0">
+              <div className="p-4 sm:p-5 industrial-panel border-2 border-border space-y-3.5 overflow-hidden">
+                {/* Meta Badges Row */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 border-b border-border/60">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
+                    <span className="px-2 py-0.5 border border-primary text-primary font-mono text-[10px] font-bold uppercase tracking-widest shrink-0">
                       {docDetails.document.doc_type || 'DOCUMENT'}
                     </span>
-                    <span className="whitespace-nowrap px-2 py-0.5 border border-border bg-secondary font-mono text-[10px] text-muted-foreground uppercase shrink-0">
-                      ID: {docDetails.document.doc_id}
+                    <span 
+                      className="px-2 py-0.5 border border-border bg-secondary font-mono text-[10px] text-muted-foreground uppercase shrink-0"
+                      title={`Document ID: ${docDetails.document.doc_id}`}
+                    >
+                      ID: {docDetails.document.doc_id.length > 18 
+                        ? `${docDetails.document.doc_id.slice(0, 8)}...${docDetails.document.doc_id.slice(-4)}`
+                        : docDetails.document.doc_id}
                     </span>
-                    <span className="whitespace-nowrap px-2 py-0.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-mono text-[10px] font-bold uppercase shrink-0">
+                    <span className="hidden sm:inline-flex items-center px-2 py-0.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-mono text-[10px] font-bold uppercase shrink-0">
                       Engine: Multimodal Vision & OCR
                     </span>
                   </div>
 
+                  {/* Audit Integrity Status Pill */}
+                  <div className="flex items-center gap-1.5 font-mono text-[11px] shrink-0">
+                    <span className={openAnomalies.length > 0 ? 'text-destructive font-bold' : 'text-emerald-400 font-bold'}>
+                      {openAnomalies.length > 0 ? `DEFECTS: ${openAnomalies.length} OPEN` : 'INTEGRITY: NOMINAL'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Title & Action Suite Row */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  {/* Document Title: Strictly truncated and responsive */}
+                  <div className="min-w-0 flex-1">
+                    <h1 
+                      className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold uppercase text-foreground truncate whitespace-nowrap block w-full tracking-tight"
+                      title={docDetails.document.filename}
+                    >
+                      {docDetails.document.filename}
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted-foreground pt-1">
+                      <span>Uploaded: {new Date(docDetails.document.upload_time).toLocaleString()}</span>
+                      <span>•</span>
+                      <span>
+                        Status:{' '}
+                        <strong className={openAnomalies.length > 0 ? 'text-destructive' : 'text-emerald-400'}>
+                          {openAnomalies.length > 0 ? `${openAnomalies.length} DEFECTS REQUIRING REVIEW` : 'VERIFIED AUDIT CLEAN'}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Header Action Suite */}
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1 lg:pt-0">
                     <Button
                       type="button"
                       variant="outline"
@@ -822,7 +857,7 @@ export default function ReviewConsolePage() {
                         className="brutalist-button font-mono text-xs uppercase font-bold tracking-wider h-8 px-2.5 sm:px-3 whitespace-nowrap shrink-0 inline-flex items-center"
                       >
                         <CheckCircle2 size={14} className="mr-1.5 shrink-0" />
-                        <span>Approve & Clear Flags</span>
+                        <span>Approve & Clear</span>
                       </Button>
                     ) : (
                       <div className="px-2.5 py-1 border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-mono text-xs font-bold uppercase flex items-center gap-1.5 h-8 whitespace-nowrap shrink-0">
@@ -831,28 +866,6 @@ export default function ReviewConsolePage() {
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Document Title: Strictly in ONE LINE with truncate and no wrapping */}
-                <div className="w-full min-w-0 overflow-hidden">
-                  <h1 
-                    className="text-xl sm:text-2xl lg:text-3xl font-heading font-extrabold uppercase text-foreground truncate whitespace-nowrap block w-full tracking-tight"
-                    title={docDetails.document.filename}
-                  >
-                    {docDetails.document.filename}
-                  </h1>
-                </div>
-
-                {/* Uploaded date and integrity status */}
-                <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-muted-foreground pt-1">
-                  <span>Uploaded: {new Date(docDetails.document.upload_time).toLocaleString()}</span>
-                  <span>•</span>
-                  <span>
-                    Integrity Status:{' '}
-                    <strong className={openAnomalies.length > 0 ? 'text-destructive' : 'text-emerald-400'}>
-                      {openAnomalies.length > 0 ? `${openAnomalies.length} OPEN DEFECTS` : 'VERIFIED AUDIT CLEAN'}
-                    </strong>
-                  </span>
                 </div>
               </div>
 
