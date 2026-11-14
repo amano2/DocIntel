@@ -25,6 +25,7 @@ export interface RAGDocument {
   filename: string;
   doc_type: string;
   extracted_text?: string;
+  text_content?: string;
   fields?: RAGField[];
   anomalies?: RAGAnomaly[];
 }
@@ -68,7 +69,7 @@ function scoreDocument(
   let score = 0;
   const filenameLower = (doc.filename || '').toLowerCase();
   const docTypeLower = (doc.doc_type || '').toLowerCase();
-  const textLower = (doc.extracted_text || '').toLowerCase();
+  const textLower = (doc.extracted_text || doc.text_content || '').toLowerCase();
   const docAnomalies = anomalies.filter((a) => a.doc_id === doc.doc_id);
 
   for (const token of queryTokens) {
@@ -285,7 +286,7 @@ export function synthesizeRAGAnswer(
   else if (isWireQuery) {
     const wireInvoices = documents.filter((d) => 
       d.doc_type === 'invoice' && 
-      (d.filename.includes('wire') || (d.extracted_text || '').toLowerCase().includes('wire') || (d.extracted_text || '').toLowerCase().includes('routing'))
+      (d.filename.includes('wire') || ((d.extracted_text || d.text_content) || '').toLowerCase().includes('wire') || ((d.extracted_text || d.text_content) || '').toLowerCase().includes('routing'))
     );
     finalSelectedDocs = wireInvoices.length > 0 ? wireInvoices : documents.filter((d) => d.doc_type === 'invoice');
 
@@ -355,7 +356,7 @@ export function synthesizeRAGAnswer(
       const governingLaw = fields.find((f) => f.field_name === 'governing_law')?.field_value || 'Unspecified';
       const effectiveDate = fields.find((f) => f.field_name === 'effective_date')?.field_value || 'Not dated';
       const sigStatus = fields.find((f) => f.field_name === 'signature_status')?.field_value || 'unknown';
-      const isUnsigned = sigStatus.toLowerCase().includes('unsigned') || (c.extracted_text || '').toLowerCase().includes('unsigned');
+      const isUnsigned = sigStatus.toLowerCase().includes('unsigned') || ((c.extracted_text || c.text_content) || '').toLowerCase().includes('unsigned');
 
       if (isUnsigned) unsignedCount++;
 
@@ -499,7 +500,7 @@ export function synthesizeRAGAnswer(
       doc_id: d.doc_id,
       filename: d.filename,
       doc_type: d.doc_type,
-      snippet: snippetField || d.extracted_text?.slice(0, 150) || `Verified record for ${d.filename}`,
+      snippet: snippetField || (d.extracted_text || d.text_content)?.slice(0, 150) || `Verified record for ${d.filename}`,
     };
   });
 

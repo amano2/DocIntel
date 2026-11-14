@@ -9,6 +9,7 @@ export interface DocumentItem {
   upload_time: string;
   file_path?: string;
   extracted_text?: string;
+  text_content?: string;
   user_id?: string;
 }
 
@@ -81,7 +82,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'invoice',
     status: 'completed',
     upload_time: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
-    extracted_text: 'Northwind Industrial Supply Co. Invoice INV-2024-0871 Date: 2024-08-15 Due: 2024-09-15 Terms: Net 30 Subtotal: $4,480.00 Tax: $358.40 Total: $4,838.40 USD',
+    extracted_text: `INVOICE\nFrom: Northwind Industrial Supply Co.\n123 Commerce Blvd, Suite 400\nChicago, IL 60601\nInvoice Number: INV-2024-0871\nDate: 2024-08-15\nDue Date: 2024-09-15\nPayment Terms: Net 30\nCurrency: USD\nBill To: Contoso Manufacturing LLC\n456 Factory Row, Detroit, MI 48201\n\nDescription\nQty\nUnit Price\nAmount\nSteel Bearings (Pack of 100)\n5\n$120.00\n$600.00\nHydraulic Pump Assembly\n2\n$1,450.00\n$2,900.00\nIndustrial Lubricant (5L)\n10\n$35.00\n$350.00\nSafety Valve Kit\n3\n$210.00\n$630.00\n\nSubtotal:\n$4,480.00\nTax (8%):\n$358.40\nTOTAL:\n$4,838.40`,
+    text_content: `INVOICE\nFrom: Northwind Industrial Supply Co.\n123 Commerce Blvd, Suite 400\nChicago, IL 60601\nInvoice Number: INV-2024-0871\nDate: 2024-08-15\nDue Date: 2024-09-15\nPayment Terms: Net 30\nCurrency: USD\nBill To: Contoso Manufacturing LLC\n456 Factory Row, Detroit, MI 48201\n\nDescription\nQty\nUnit Price\nAmount\nSteel Bearings (Pack of 100)\n5\n$120.00\n$600.00\nHydraulic Pump Assembly\n2\n$1,450.00\n$2,900.00\nIndustrial Lubricant (5L)\n10\n$35.00\n$350.00\nSafety Valve Kit\n3\n$210.00\n$630.00\n\nSubtotal:\n$4,480.00\nTax (8%):\n$358.40\nTOTAL:\n$4,838.40`,
   },
   {
     doc_id: 'doc-002-inv-math',
@@ -89,7 +91,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'invoice',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 20).toISOString(),
-    extracted_text: 'Globex Corporation Invoice INV-2024-1337 Date: 2024-09-01 Subtotal: $900.00 Tax: $72.00 Total: $1,050.00 USD (Discrepancy: 900+72=972 != 1050)',
+    extracted_text: `INVOICE\nFrom: Globex Corporation\n742 Evergreen Terrace, Springfield\nInvoice Number: INV-2024-1337\nDate: 2024-09-01\nDue Date: 2024-10-01\nPayment Terms: Net 30\nCurrency: USD\nBill To: Initech Solutions\n\nDescription\nQty\nUnit Price\nAmount\nWidget Alpha\n10\n$50.00\n$500.00\nWidget Beta\n5\n$80.00\n$400.00\n\nSubtotal:\n$900.00\nTax (8%):\n$72.00\nTOTAL:\n$1,050.00`,
+    text_content: `INVOICE\nFrom: Globex Corporation\n742 Evergreen Terrace, Springfield\nInvoice Number: INV-2024-1337\nDate: 2024-09-01\nDue Date: 2024-10-01\nPayment Terms: Net 30\nCurrency: USD\nBill To: Initech Solutions\n\nDescription\nQty\nUnit Price\nAmount\nWidget Alpha\n10\n$50.00\n$500.00\nWidget Beta\n5\n$80.00\n$400.00\n\nSubtotal:\n$900.00\nTax (8%):\n$72.00\nTOTAL:\n$1,050.00`,
   },
   {
     doc_id: 'doc-003-inv-dup',
@@ -97,7 +100,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'invoice',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 16).toISOString(),
-    extracted_text: 'Globex Corporation Invoice INV-2024-1337 Total: $1,050.00 Duplicate invoice reference',
+    extracted_text: `INVOICE\nFrom: Globex Corporation\n742 Evergreen Terrace, Springfield\nInvoice Number: INV-2024-1337\nDate: 2024-09-15\nDue Date: 2024-10-15\nPayment Terms: Net 30\nBill To: Initech Solutions\n\nDescription\nQty\nUnit Price\nAmount\nWidget Alpha\n20\n$50.00\n$1,000.00\n\nSubtotal:\n$1,000.00\nTax (8%):\n$80.00\nTOTAL:\n$1,080.00`,
+    text_content: `INVOICE\nFrom: Globex Corporation\n742 Evergreen Terrace, Springfield\nInvoice Number: INV-2024-1337\nDate: 2024-09-15\nDue Date: 2024-10-15\nPayment Terms: Net 30\nBill To: Initech Solutions\n\nDescription\nQty\nUnit Price\nAmount\nWidget Alpha\n20\n$50.00\n$1,000.00\n\nSubtotal:\n$1,000.00\nTax (8%):\n$80.00\nTOTAL:\n$1,080.00`,
   },
   {
     doc_id: 'doc-004-contract-clean',
@@ -105,7 +109,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'contract',
     status: 'completed',
     upload_time: new Date(Date.now() - 3600000 * 12).toISOString(),
-    extracted_text: 'Master Services Agreement between Acme Consulting Group and Wayne Enterprises. Effective date: 2024-01-15. Governing law: Delaware. Signed and executed.',
+    extracted_text: `SERVICE AGREEMENT\nThis Service Agreement ('Agreement') is entered into as of January 15, 2024\nby and between:\nParty A: Acme Consulting Group, LLC ('Provider')\nParty B: Wayne Enterprises, Inc. ('Client')\n\n1. TERM: This Agreement is effective from January 15, 2024 through\n   January 14, 2025 (the 'Initial Term'). It will auto-renew annually\n   unless either party provides 30 days written notice.\n\n2. SCOPE OF SERVICES: Provider shall deliver monthly financial advisory\n   reports, quarterly strategic planning sessions, and ad-hoc consulting\n   as reasonably requested by Client.\n\n3. COMPENSATION: Client agrees to pay Provider $12,500.00 per month,\n   due on the first business day of each calendar month.\n\n4. GOVERNING LAW: This Agreement shall be governed by the laws of the\n   State of Delaware.\n\n5. KEY OBLIGATIONS:\n   - Provider must deliver reports by the 5th of each month\n   - Client must provide data access within 3 business days of request\n   - Both parties must maintain confidentiality of shared information\n\nSIGNED:\n___________________________          ___________________________\nAcme Consulting Group, LLC           Wayne Enterprises, Inc.\nDate: January 15, 2024               Date: January 15, 2024\nStatus: SIGNED                       Status: SIGNED`,
+    text_content: `SERVICE AGREEMENT\nThis Service Agreement ('Agreement') is entered into as of January 15, 2024\nby and between:\nParty A: Acme Consulting Group, LLC ('Provider')\nParty B: Wayne Enterprises, Inc. ('Client')\n\n1. TERM: This Agreement is effective from January 15, 2024 through\n   January 14, 2025 (the 'Initial Term'). It will auto-renew annually\n   unless either party provides 30 days written notice.\n\n2. SCOPE OF SERVICES: Provider shall deliver monthly financial advisory\n   reports, quarterly strategic planning sessions, and ad-hoc consulting\n   as reasonably requested by Client.\n\n3. COMPENSATION: Client agrees to pay Provider $12,500.00 per month,\n   due on the first business day of each calendar month.\n\n4. GOVERNING LAW: This Agreement shall be governed by the laws of the\n   State of Delaware.\n\n5. KEY OBLIGATIONS:\n   - Provider must deliver reports by the 5th of each month\n   - Client must provide data access within 3 business days of request\n   - Both parties must maintain confidentiality of shared information\n\nSIGNED:\n___________________________          ___________________________\nAcme Consulting Group, LLC           Wayne Enterprises, Inc.\nDate: January 15, 2024               Date: January 15, 2024\nStatus: SIGNED                       Status: SIGNED`,
   },
   {
     doc_id: 'doc-005-contract-unsig',
@@ -113,7 +118,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'contract',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 8).toISOString(),
-    extracted_text: 'Strategic Partnership Agreement between Stark Industries and Oscorp Technologies. Signature Status: Unsigned draft.',
+    extracted_text: `MASTER SERVICE AGREEMENT\nThis Master Service Agreement ('MSA') is dated March 1, 2024\nby and between:\nParty A: Stark Industries ('Provider')\nParty B: Oscorp Technologies ('Client')\n\n1. TERM: Effective from March 1, 2024 through February 28, 2025.\n   Renewal: Manual renewal required.\n\n2. SCOPE: Full-stack engineering consulting and code review services.\n\n3. GOVERNING LAW: State of New York.\n\n4. KEY OBLIGATIONS:\n   - Provider: Weekly sprint reports and code deliverables\n   - Client: Timely payment within Net 45 terms\n\nSIGNATURE BLOCK:\n___________________________          ___________________________\nStark Industries                     Oscorp Technologies\nDate: _______________                Date: _______________\nStatus: UNSIGNED - DRAFT             Status: UNSIGNED - PENDING REVIEW`,
+    text_content: `MASTER SERVICE AGREEMENT\nThis Master Service Agreement ('MSA') is dated March 1, 2024\nby and between:\nParty A: Stark Industries ('Provider')\nParty B: Oscorp Technologies ('Client')\n\n1. TERM: Effective from March 1, 2024 through February 28, 2025.\n   Renewal: Manual renewal required.\n\n2. SCOPE: Full-stack engineering consulting and code review services.\n\n3. GOVERNING LAW: State of New York.\n\n4. KEY OBLIGATIONS:\n   - Provider: Weekly sprint reports and code deliverables\n   - Client: Timely payment within Net 45 terms\n\nSIGNATURE BLOCK:\n___________________________          ___________________________\nStark Industries                     Oscorp Technologies\nDate: _______________                Date: _______________\nStatus: UNSIGNED - DRAFT             Status: UNSIGNED - PENDING REVIEW`,
   },
   {
     doc_id: 'doc-006-compliance-clean',
@@ -121,7 +127,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'compliance_doc',
     status: 'completed',
     upload_time: new Date(Date.now() - 3600000 * 4).toISOString(),
-    extracted_text: 'Q3 2024 GDPR Compliance Audit issued by Internal Data Protection Office. Compliance status: partially compliant. Remediation deadlines assigned.',
+    extracted_text: `COMPLIANCE ASSESSMENT REPORT\nDocument Title: Q3 2024 GDPR Compliance Audit\nIssuing Authority: Internal Data Protection Office\nAssessment Date: September 30, 2024\n\nRelevant Clause References:\n  - GDPR Article 5(1)(a): Lawfulness, fairness and transparency\n  - GDPR Article 13: Information to be provided at point of collection\n  - GDPR Article 25: Data protection by design and by default\n  - GDPR Article 32: Security of processing\n\nRequired Actions:\n  1. Update privacy notice on customer portal by October 15, 2024\n  2. Complete Data Protection Impact Assessment for Project Atlas\n  3. Conduct employee training on new data handling procedures\n  4. Review and update data processor agreements with third parties\n\nDeadlines:\n  - Privacy notice update: October 15, 2024\n  - DPIA completion: November 1, 2024\n  - Employee training: November 30, 2024\n  - Processor agreement review: December 15, 2024\n\nCompliance Status: PARTIALLY COMPLIANT\nSummary: The organization meets most GDPR requirements but needs\nto address the above items before the next regulatory review.`,
+    text_content: `COMPLIANCE ASSESSMENT REPORT\nDocument Title: Q3 2024 GDPR Compliance Audit\nIssuing Authority: Internal Data Protection Office\nAssessment Date: September 30, 2024\n\nRelevant Clause References:\n  - GDPR Article 5(1)(a): Lawfulness, fairness and transparency\n  - GDPR Article 13: Information to be provided at point of collection\n  - GDPR Article 25: Data protection by design and by default\n  - GDPR Article 32: Security of processing\n\nRequired Actions:\n  1. Update privacy notice on customer portal by October 15, 2024\n  2. Complete Data Protection Impact Assessment for Project Atlas\n  3. Conduct employee training on new data handling procedures\n  4. Review and update data processor agreements with third parties\n\nDeadlines:\n  - Privacy notice update: October 15, 2024\n  - DPIA completion: November 1, 2024\n  - Employee training: November 30, 2024\n  - Processor agreement review: December 15, 2024\n\nCompliance Status: PARTIALLY COMPLIANT\nSummary: The organization meets most GDPR requirements but needs\nto address the above items before the next regulatory review.`,
   },
   {
     doc_id: 'doc-007-po-highval',
@@ -129,7 +136,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'purchase_order',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 1).toISOString(),
-    extracted_text: 'Purchase Order PO-2024-5599 for Precision Machining Ltd. Total amount: $65,700.00. High value threshold exceeded.',
+    extracted_text: `PURCHASE ORDER\nPO Number: PO-2024-5599\nVendor: Precision Machining Ltd.\nOrder Date: 2024-10-01\nExpected Delivery: 2024-11-15\nShip To: 789 Warehouse Ave, Houston, TX 77001\n\nItem\nQty\nUnit Price\nAmount\nCNC Milling Machine Model X7\n1\n$45,000.00\n$45,000.00\nTitanium Stock (500kg)\n1\n$18,500.00\n$18,500.00\nCalibration Service\n1\n$2,200.00\n$2,200.00\n\nTOTAL: $65,700.00`,
+    text_content: `PURCHASE ORDER\nPO Number: PO-2024-5599\nVendor: Precision Machining Ltd.\nOrder Date: 2024-10-01\nExpected Delivery: 2024-11-15\nShip To: 789 Warehouse Ave, Houston, TX 77001\n\nItem\nQty\nUnit Price\nAmount\nCNC Milling Machine Model X7\n1\n$45,000.00\n$45,000.00\nTitanium Stock (500kg)\n1\n$18,500.00\n$18,500.00\nCalibration Service\n1\n$2,200.00\n$2,200.00\n\nTOTAL: $65,700.00`,
   },
   {
     doc_id: 'doc-008-inv-wire',
@@ -137,7 +145,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'invoice',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 0.7).toISOString(),
-    extracted_text: 'Apex Cloud Infrastructure Inc. Invoice INV-2024-8841 Date: 2024-10-02 Due: 2024-11-01 Subtotal: $18,450.00 Tax: $0.00 Total: $18,450.00 USD. Wire Routing: 021000021 (Mismatch with vendor master file routing 121000035) Account: 9948-2831-002 Beneficiary: Apex Cloud Infrastructure LLC',
+    extracted_text: `APEX CLOUD INFRASTRUCTURE INC.\n100 Enterprise Way, Suite 400, San Jose, CA 95110 | Billing: billing@apexcloud.io\nInvoice Number: INV-2024-8841\nInvoice Date: 2024-10-02\nBill To: Wayne Enterprises - Global Infrastructure\nPayment Terms: Net 30 (Due: 2024-11-01)\n\nLine\nDescription\nQty\nUnit Price\nTotal Amount\n1\nDedicated GPU Compute Cluster - Oct 2024\n1 mo\n$12,500.00\n$12,500.00\n2\nMulti-Region Cloud Storage Tier (40 TB)\n40 TB\n$100.00\n$4,000.00\n3\nPremium Support & SLA Assurance\n1 mo\n$1,950.00\n$1,950.00\n\nSUBTOTAL:\n$18,450.00\nTAX (0.00% Exempt):\n$0.00\nTOTAL PAYABLE:\n$18,450.00 USD\n\nWIRE TRANSFER REMITTANCE INSTRUCTIONS (ATTENTION: UPDATED BANK):\nBeneficiary Bank:\nTitan First Commercial Bank (Offshore Branch)\nRouting Number (ABA):\n021000021  <-- MISMATCH WITH VENDOR MASTER FILE (Expected: 121000035)\nAccount Number:\n9948-2831-002 (Changed from master account: 4410-9281-001)\nSwift / BIC:\nTITNUS33XXX | Beneficiary: Apex Cloud Infrastructure LLC`,
+    text_content: `APEX CLOUD INFRASTRUCTURE INC.\n100 Enterprise Way, Suite 400, San Jose, CA 95110 | Billing: billing@apexcloud.io\nInvoice Number: INV-2024-8841\nInvoice Date: 2024-10-02\nBill To: Wayne Enterprises - Global Infrastructure\nPayment Terms: Net 30 (Due: 2024-11-01)\n\nLine\nDescription\nQty\nUnit Price\nTotal Amount\n1\nDedicated GPU Compute Cluster - Oct 2024\n1 mo\n$12,500.00\n$12,500.00\n2\nMulti-Region Cloud Storage Tier (40 TB)\n40 TB\n$100.00\n$4,000.00\n3\nPremium Support & SLA Assurance\n1 mo\n$1,950.00\n$1,950.00\n\nSUBTOTAL:\n$18,450.00\nTAX (0.00% Exempt):\n$0.00\nTOTAL PAYABLE:\n$18,450.00 USD\n\nWIRE TRANSFER REMITTANCE INSTRUCTIONS (ATTENTION: UPDATED BANK):\nBeneficiary Bank:\nTitan First Commercial Bank (Offshore Branch)\nRouting Number (ABA):\n021000021  <-- MISMATCH WITH VENDOR MASTER FILE (Expected: 121000035)\nAccount Number:\n9948-2831-002 (Changed from master account: 4410-9281-001)\nSwift / BIC:\nTITNUS33XXX | Beneficiary: Apex Cloud Infrastructure LLC`,
   },
   {
     doc_id: 'doc-009-contract-exp',
@@ -145,7 +154,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'contract',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 0.4).toISOString(),
-    extracted_text: 'Master Cybersecurity Services Agreement MSA-CYBER-2023-09A between CyberShield Security Corp. and Global Logistics Partners Inc. Effective Date: 2023-01-15. Term: 12 months expiring 2024-01-15. Counterparts signed: June 20, 2024 (Post-expiry execution).',
+    extracted_text: `MASTER CYBERSECURITY SERVICES AGREEMENT\nAgreement Reference: MSA-CYBER-2023-09A | Classification: Legal Agreement\nPARTIES: This Agreement is entered into by and between CyberShield Security Corp. ('Vendor') and Global Logistics Partners Inc. ('Client').\n\nSECTION 1.1 — EFFECTIVE DATE & RETROACTIVE TERM:\nThis Agreement shall be deemed effective retroactively as of January 15, 2023 ('Effective Date').\n\nSECTION 2.3 — TERM AND EXPIRATION WINDOW:\nThe initial term of this Agreement shall endure for exactly twelve (12) calendar months from the Effective Date, expiring on January 15, 2024, unless renewed in writing by both parties thirty (30) days prior.\n\nSECTION 14.1 — EXECUTION AND COUNTERPARTS:\nIN WITNESS WHEREOF, the parties hereto have executed this Agreement by their duly authorized representatives on the dates written below.\n\nCYBERSHIELD SECURITY CORP.\nSignature: /s/ Robert H. Miller\nName: Robert H. Miller, Chief Information Officer\nExecution Date: June 20, 2024\n[ANOMALY: Executed 5+ months AFTER term expired on Jan 15, 2024]\n\nGLOBAL LOGISTICS PARTNERS INC.\nSignature: /s/ Elena Rostova\nName: Elena Rostova, VP of Operations\nExecution Date: June 21, 2024\n[ANOMALY: Agreement null & lapsed prior to signing]`,
+    text_content: `MASTER CYBERSECURITY SERVICES AGREEMENT\nAgreement Reference: MSA-CYBER-2023-09A | Classification: Legal Agreement\nPARTIES: This Agreement is entered into by and between CyberShield Security Corp. ('Vendor') and Global Logistics Partners Inc. ('Client').\n\nSECTION 1.1 — EFFECTIVE DATE & RETROACTIVE TERM:\nThis Agreement shall be deemed effective retroactively as of January 15, 2023 ('Effective Date').\n\nSECTION 2.3 — TERM AND EXPIRATION WINDOW:\nThe initial term of this Agreement shall endure for exactly twelve (12) calendar months from the Effective Date, expiring on January 15, 2024, unless renewed in writing by both parties thirty (30) days prior.\n\nSECTION 14.1 — EXECUTION AND COUNTERPARTS:\nIN WITNESS WHEREOF, the parties hereto have executed this Agreement by their duly authorized representatives on the dates written below.\n\nCYBERSHIELD SECURITY CORP.\nSignature: /s/ Robert H. Miller\nName: Robert H. Miller, Chief Information Officer\nExecution Date: June 20, 2024\n[ANOMALY: Executed 5+ months AFTER term expired on Jan 15, 2024]\n\nGLOBAL LOGISTICS PARTNERS INC.\nSignature: /s/ Elena Rostova\nName: Elena Rostova, VP of Operations\nExecution Date: June 21, 2024\n[ANOMALY: Agreement null & lapsed prior to signing]`,
   },
   {
     doc_id: 'doc-010-compliance-soc2',
@@ -153,7 +163,8 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     doc_type: 'compliance_doc',
     status: 'flagged',
     upload_time: new Date(Date.now() - 3600000 * 0.1).toISOString(),
-    extracted_text: 'Annual SOC 2 Type II Compliance Assessment Report for CloudSphere Enterprise Corp. Audit body: Apex Integrity Audit Partners LLP. Status: Qualified Opinion - Deficiencies Noted. Control CC6.1 Logical Access Controls exception noted: Production database credentials and private keys stored unencrypted. SLA Remediation deadline August 15, 2024 past due (>90 days).',
+    extracted_text: `ANNUAL SOC 2 TYPE II COMPLIANCE ASSESSMENT\nSecurity, Confidentiality & Availability Trust Services Criteria | Audit Period: Q3-Q4 2024\nAUDITING BODY: Apex Integrity Audit Partners LLP | Client: CloudSphere Enterprise Corp\nASSESSMENT STATUS: QUALIFIED OPINION — DEFICIENCIES NOTED\n\nControl Ref\nTrust Criteria\nTesting Result\nRisk Severity\nRemediation Status\nCC6.1\nLogical Access Controls\nEXCEPTION NOTED\nHIGH\nPAST DUE (>90 Days)\nCC6.6\nBoundary Protection & WAF\nOperating Nominally\nLOW\nSatisfied\nCC7.2\nSystem Monitoring & Alerting\nOperating Nominally\nLOW\nSatisfied\nA1.2\nData Backup & Recovery\nOperating Nominally\nLOW\nSatisfied\n\nCONTROL EXCEPTION DETAIL (CC6.1 - CRYPTOGRAPHIC KEY STORAGE):\nDuring auditor sample testing of 25 production microservices, auditors identified that production database credentials and API private keys were stored in unencrypted plaintext environment configurations in repository \`.env.production\` backups rather than an HSM vault. The remediation deadline of August 15, 2024 was exceeded without formal mitigation, violating SOC 2 CC6.1 criteria.`,
+    text_content: `ANNUAL SOC 2 TYPE II COMPLIANCE ASSESSMENT\nSecurity, Confidentiality & Availability Trust Services Criteria | Audit Period: Q3-Q4 2024\nAUDITING BODY: Apex Integrity Audit Partners LLP | Client: CloudSphere Enterprise Corp\nASSESSMENT STATUS: QUALIFIED OPINION — DEFICIENCIES NOTED\n\nControl Ref\nTrust Criteria\nTesting Result\nRisk Severity\nRemediation Status\nCC6.1\nLogical Access Controls\nEXCEPTION NOTED\nHIGH\nPAST DUE (>90 Days)\nCC6.6\nBoundary Protection & WAF\nOperating Nominally\nLOW\nSatisfied\nCC7.2\nSystem Monitoring & Alerting\nOperating Nominally\nLOW\nSatisfied\nA1.2\nData Backup & Recovery\nOperating Nominally\nLOW\nSatisfied\n\nCONTROL EXCEPTION DETAIL (CC6.1 - CRYPTOGRAPHIC KEY STORAGE):\nDuring auditor sample testing of 25 production microservices, auditors identified that production database credentials and API private keys were stored in unencrypted plaintext environment configurations in repository \`.env.production\` backups rather than an HSM vault. The remediation deadline of August 15, 2024 was exceeded without formal mitigation, violating SOC 2 CC6.1 criteria.`,
   },
 ];
 
@@ -321,12 +332,29 @@ export async function getDocuments(userId?: string): Promise<DocumentItem[]> {
 
     // Ensure all default documents are included in the queue
     DEFAULT_DOCUMENTS.forEach((defDoc) => {
-      const exists = docList.some(
+      const existing = docList.find(
         (d) => d.doc_id === defDoc.doc_id || d.filename.toLowerCase() === defDoc.filename.toLowerCase()
       );
-      if (!exists) {
-        docList.push(defDoc);
+      if (!existing) {
+        docList.push({ ...defDoc });
+      } else {
+        if (!existing.extracted_text && defDoc.extracted_text) {
+          existing.extracted_text = defDoc.extracted_text;
+        }
+        if (!existing.text_content) {
+          existing.text_content = existing.extracted_text || defDoc.text_content;
+        }
       }
+    });
+
+    // Normalize all docs in the list
+    docList.forEach((d) => {
+      const def = DEFAULT_DOCUMENTS.find(
+        (df) => df.doc_id === d.doc_id || df.filename.toLowerCase() === d.filename.toLowerCase()
+      );
+      const text = d.extracted_text || d.text_content || def?.extracted_text || def?.text_content || '';
+      d.extracted_text = text;
+      d.text_content = text;
     });
 
     return docList;
@@ -351,8 +379,24 @@ export async function getDocumentDetails(docId: string, _userId?: string): Promi
       supabase.from('anomalies').select('*').eq('doc_id', docId).order('created_at', { ascending: true }),
     ]);
 
-    const defaultDoc = DEFAULT_DOCUMENTS.find((d) => d.doc_id === docId);
-    const document = (docRes.data as DocumentItem) || defaultDoc || null;
+    const defaultDoc = DEFAULT_DOCUMENTS.find(
+      (d) => d.doc_id === docId || (docRes.data?.filename && d.filename.toLowerCase() === (docRes.data as DocumentItem).filename.toLowerCase())
+    );
+    let document = (docRes.data as DocumentItem) || (defaultDoc ? { ...defaultDoc } : null);
+
+    if (document) {
+      const fullText = 
+        document.extracted_text || 
+        document.text_content || 
+        defaultDoc?.extracted_text || 
+        defaultDoc?.text_content || 
+        '';
+      document = {
+        ...document,
+        extracted_text: fullText,
+        text_content: fullText,
+      };
+    }
 
     let fields = (fieldsRes.data as ExtractedField[]) || [];
     if (fields.length === 0 && defaultDoc) {
@@ -373,7 +417,7 @@ export async function getDocumentDetails(docId: string, _userId?: string): Promi
     console.error(`Failed to get document details for ${docId}:`, err);
     const defaultDoc = DEFAULT_DOCUMENTS.find((d) => d.doc_id === docId);
     return {
-      document: defaultDoc || null,
+      document: defaultDoc ? { ...defaultDoc } : null,
       fields: defaultDoc ? DEFAULT_FIELDS.filter((f) => f.doc_id === defaultDoc.doc_id) : [],
       anomalies: defaultDoc ? DEFAULT_ANOMALIES.filter((a) => a.doc_id === defaultDoc.doc_id) : [],
     };

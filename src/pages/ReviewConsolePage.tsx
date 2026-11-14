@@ -432,9 +432,48 @@ export default function ReviewConsolePage() {
 
   // Semantic vector chunks computed for vector view inspection
   const vectorChunks = useMemo(() => {
-    if (!docDetails?.document?.text_content) return [];
-    const text = docDetails.document.text_content;
-    const rawParagraphs = text.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
+    const text = docDetails?.document?.text_content || docDetails?.document?.extracted_text || '';
+    if (!text) return [];
+
+    let rawParagraphs = text.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
+    if (rawParagraphs.length <= 1) {
+      const lines = text.split(/\n/).filter((p: string) => p.trim().length > 0);
+      if (lines.length > 1) {
+        rawParagraphs = [];
+        let buffer = '';
+        for (const line of lines) {
+          if (
+            buffer &&
+            (buffer.length + line.length > 180 ||
+              line.startsWith('Description') ||
+              line.startsWith('Item') ||
+              line.startsWith('Subtotal') ||
+              line.startsWith('TOTAL') ||
+              line.startsWith('SECTION') ||
+              line.startsWith('1.') ||
+              line.startsWith('2.') ||
+              line.startsWith('3.') ||
+              line.startsWith('4.') ||
+              line.startsWith('5.') ||
+              line.startsWith('Required') ||
+              line.startsWith('Deadlines') ||
+              line.startsWith('SIGNED') ||
+              line.startsWith('SIGNATURE') ||
+              line.startsWith('WIRE TRANSFER') ||
+              line.startsWith('CONTROL'))
+          ) {
+            rawParagraphs.push(buffer.trim());
+            buffer = line;
+          } else {
+            buffer = buffer ? `${buffer}\n${line}` : line;
+          }
+        }
+        if (buffer.trim()) {
+          rawParagraphs.push(buffer.trim());
+        }
+      }
+    }
+
     const paragraphs = rawParagraphs.length > 0 ? rawParagraphs : [text];
     
     let currentOffset = 0;
@@ -455,7 +494,7 @@ export default function ReviewConsolePage() {
         id: `chk_${(docDetails.document.doc_id || 'doc').slice(-4)}_${String(idx + 1).padStart(2, '0')}`,
         offsetStart: currentOffset,
         offsetEnd: currentOffset + pTrimmed.length,
-        tokens: Math.round(pTrimmed.split(/\s+/).length * 1.3),
+        tokens: Math.max(1, Math.round(pTrimmed.split(/\s+/).length * 1.3)),
         content: pTrimmed,
         vectorSample: sampleVec,
       };
@@ -465,6 +504,7 @@ export default function ReviewConsolePage() {
   }, [docDetails]);
 
   const handleCopyRawText = () => {
+    const rawText = docDetails?.document?.text_content || docDetails?.document?.extracted_text || '';
     if (vectorView) {
       const vectorPayload = JSON.stringify(
         {
@@ -483,8 +523,8 @@ export default function ReviewConsolePage() {
       setCopiedRawText(true);
       setTimeout(() => setCopiedRawText(false), 2000);
     } else {
-      if (!docDetails?.document?.text_content) return;
-      navigator.clipboard.writeText(docDetails.document.text_content);
+      if (!rawText) return;
+      navigator.clipboard.writeText(rawText);
       setCopiedRawText(true);
       setTimeout(() => setCopiedRawText(false), 2000);
     }
@@ -1109,7 +1149,7 @@ export default function ReviewConsolePage() {
                       <span className="text-muted-foreground ml-2 text-[11px]">
                         {vectorView 
                           ? `(${vectorChunks.length} Chunks • 384-D Dense Vectors)`
-                          : `(${docDetails.document.text_content?.length || 0} characters)`
+                          : `(${(docDetails.document.text_content || docDetails.document.extracted_text || '').length} characters)`
                         }
                       </span>
                     </div>
@@ -1243,7 +1283,7 @@ export default function ReviewConsolePage() {
                     </div>
                   ) : (
                     <div className="p-5 font-mono text-xs sm:text-sm text-foreground/90 whitespace-pre-wrap break-words leading-relaxed max-h-[500px] overflow-y-auto bg-background/80">
-                      {docDetails.document.text_content || 'No text content available.'}
+                      {docDetails.document.text_content || docDetails.document.extracted_text || 'No text content available.'}
                     </div>
                   )}
                 </div>

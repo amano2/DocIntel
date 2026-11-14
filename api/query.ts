@@ -20,6 +20,7 @@ interface RAGDocument {
   filename: string;
   doc_type: string;
   extracted_text?: string;
+  text_content?: string;
   fields?: RAGField[];
   anomalies?: RAGAnomaly[];
 }
@@ -62,7 +63,7 @@ function scoreDocument(doc: RAGDocument, queryTokens: string[], lowerQuery: stri
   let score = 0;
   const filenameLower = (doc.filename || '').toLowerCase();
   const docTypeLower = (doc.doc_type || '').toLowerCase();
-  const textLower = (doc.extracted_text || '').toLowerCase();
+  const textLower = (doc.extracted_text || doc.text_content || '').toLowerCase();
 
   for (const token of queryTokens) {
     if (filenameLower.includes(token)) score += 25;
@@ -260,7 +261,7 @@ function synthesizeDeterministicRAG(query: string, documents: RAGDocument[]) {
       const governingLaw = fields.find((f) => f.field_name === 'governing_law')?.field_value || 'Unspecified';
       const effectiveDate = fields.find((f) => f.field_name === 'effective_date')?.field_value || 'Not dated';
       const sigStatus = fields.find((f) => f.field_name === 'signature_status')?.field_value || 'unknown';
-      const isUnsigned = sigStatus.toLowerCase().includes('unsigned') || (c.extracted_text || '').toLowerCase().includes('unsigned');
+      const isUnsigned = sigStatus.toLowerCase().includes('unsigned') || ((c.extracted_text || c.text_content) || '').toLowerCase().includes('unsigned');
 
       if (isUnsigned) unsignedCount++;
 
@@ -396,7 +397,7 @@ function synthesizeDeterministicRAG(query: string, documents: RAGDocument[]) {
       doc_id: d.doc_id,
       filename: d.filename,
       doc_type: d.doc_type,
-      snippet: snippetField || d.extracted_text?.slice(0, 150) || `Verified record for ${d.filename}`,
+      snippet: snippetField || (d.extracted_text || d.text_content)?.slice(0, 150) || `Verified record for ${d.filename}`,
     };
   });
 
@@ -452,7 +453,7 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
   const corpusContext = documents
     .map((doc) => {
       const fieldList = (doc.fields || []).map((f) => `  - ${f.field_name}: ${f.field_value}`).join('\n');
-      return `[Document ID: ${doc.doc_id}] Name: ${doc.filename} | Type: ${doc.doc_type}\nFields:\n${fieldList}\nText preview: ${(doc.extracted_text || '').slice(0, 800)}`;
+      return `[Document ID: ${doc.doc_id}] Name: ${doc.filename} | Type: ${doc.doc_type}\nFields:\n${fieldList}\nText preview: ${(doc.extracted_text || doc.text_content || '').slice(0, 800)}`;
     })
     .join('\n\n');
 
@@ -596,7 +597,7 @@ Provide a concise, professional answer with structured markdown tables where app
         doc_id: d.doc_id,
         filename: d.filename,
         doc_type: d.doc_type,
-        snippet: fieldList || (d.extracted_text || '').slice(0, 150) || `Extracted data for ${d.filename}`,
+        snippet: fieldList || (d.extracted_text || d.text_content || '').slice(0, 150) || `Extracted data for ${d.filename}`,
       };
     });
 
