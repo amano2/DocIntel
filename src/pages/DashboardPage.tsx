@@ -394,15 +394,15 @@ export default function DashboardPage() {
                   <div className="flex justify-between text-xs font-mono mb-1.5">
                     <span className="font-bold text-foreground">Invoices & Billing</span>
                     <span className="text-muted-foreground">
-                      {documents.filter((d) => d.doc_type === 'invoice').length} files (43%)
+                      {documents.filter((d) => d.doc_type === 'invoice').length} files ({docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'invoice').length / docCount) * 100) : 40}%)
                     </span>
                   </div>
                   <div className="w-full bg-secondary h-2.5 border border-border overflow-hidden">
-                    <div className="bg-primary h-full transition-all duration-500" style={{ width: '43%' }} />
+                    <div className="bg-primary h-full transition-all duration-500" style={{ width: `${docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'invoice').length / docCount) * 100) : 40}%` }} />
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground mt-1 flex justify-between">
-                    <span>Tax math reconciliation & duplicate checks active</span>
-                    <span className="text-amber-400">2 flagged</span>
+                    <span>Tax math, duplicate & wire routing checks</span>
+                    <span className="text-amber-400">{documents.filter((d) => d.doc_type === 'invoice' && d.status === 'flagged').length} flagged</span>
                   </div>
                 </div>
 
@@ -411,15 +411,15 @@ export default function DashboardPage() {
                   <div className="flex justify-between text-xs font-mono mb-1.5">
                     <span className="font-bold text-foreground">Contracts & Master Agreements</span>
                     <span className="text-muted-foreground">
-                      {documents.filter((d) => d.doc_type === 'contract').length} files (29%)
+                      {documents.filter((d) => d.doc_type === 'contract').length} files ({docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'contract').length / docCount) * 100) : 30}%)
                     </span>
                   </div>
                   <div className="w-full bg-secondary h-2.5 border border-border overflow-hidden">
-                    <div className="bg-emerald-400 h-full transition-all duration-500" style={{ width: '29%' }} />
+                    <div className="bg-emerald-400 h-full transition-all duration-500" style={{ width: `${docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'contract').length / docCount) * 100) : 30}%` }} />
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground mt-1 flex justify-between">
-                    <span>Signature verification & effective dates audited</span>
-                    <span className="text-amber-400">1 unsigned draft</span>
+                    <span>Signatures, execution dates & term limits audited</span>
+                    <span className="text-amber-400">{documents.filter((d) => d.doc_type === 'contract' && d.status === 'flagged').length} flagged</span>
                   </div>
                 </div>
 
@@ -428,15 +428,15 @@ export default function DashboardPage() {
                   <div className="flex justify-between text-xs font-mono mb-1.5">
                     <span className="font-bold text-foreground">Purchase Orders (POs)</span>
                     <span className="text-muted-foreground">
-                      {documents.filter((d) => d.doc_type === 'purchase_order').length} files (14%)
+                      {documents.filter((d) => d.doc_type === 'purchase_order').length} files ({docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'purchase_order').length / docCount) * 100) : 10}%)
                     </span>
                   </div>
                   <div className="w-full bg-secondary h-2.5 border border-border overflow-hidden">
-                    <div className="bg-blue-400 h-full transition-all duration-500" style={{ width: '14%' }} />
+                    <div className="bg-blue-400 h-full transition-all duration-500" style={{ width: `${docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'purchase_order').length / docCount) * 100) : 10}%` }} />
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground mt-1 flex justify-between">
                     <span>Approval limit ($50k secondary threshold) verified</span>
-                    <span className="text-blue-400">1 review item</span>
+                    <span className="text-blue-400">{documents.filter((d) => d.doc_type === 'purchase_order' && d.status === 'flagged').length} flagged</span>
                   </div>
                 </div>
 
@@ -445,15 +445,15 @@ export default function DashboardPage() {
                   <div className="flex justify-between text-xs font-mono mb-1.5">
                     <span className="font-bold text-foreground">Compliance Audits & Filings</span>
                     <span className="text-muted-foreground">
-                      {documents.filter((d) => d.doc_type === 'compliance_doc').length} files (14%)
+                      {documents.filter((d) => d.doc_type === 'compliance_doc').length} files ({docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'compliance_doc').length / docCount) * 100) : 20}%)
                     </span>
                   </div>
                   <div className="w-full bg-secondary h-2.5 border border-border overflow-hidden">
-                    <div className="bg-purple-400 h-full transition-all duration-500" style={{ width: '14%' }} />
+                    <div className="bg-purple-400 h-full transition-all duration-500" style={{ width: `${docCount > 0 ? Math.round((documents.filter((d) => d.doc_type === 'compliance_doc').length / docCount) * 100) : 20}%` }} />
                   </div>
                   <div className="text-[10px] font-mono text-muted-foreground mt-1 flex justify-between">
-                    <span>GDPR & data privacy regulatory obligations indexed</span>
-                    <span className="text-emerald-400">Verified</span>
+                    <span>GDPR, SOC 2 & security control obligations</span>
+                    <span className="text-destructive">{documents.filter((d) => d.doc_type === 'compliance_doc' && d.status === 'flagged').length} flagged</span>
                   </div>
                 </div>
               </div>

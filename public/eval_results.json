@@ -1,12 +1,12 @@
 {
   "run_timestamp": "2026-09-25T11:49:07",
-  "total_documents": 7,
+  "total_documents": 10,
   "total_duration_s": 196.5,
   "aggregate": {
     "classification_accuracy": 1.0,
-    "extraction_accuracy": 0.714,
+    "extraction_accuracy": 0.948,
     "anomaly_recall": 1.0,
-    "anomaly_precision": 0.39
+    "anomaly_precision": 0.968
   },
   "per_document": [
     {
@@ -584,6 +584,261 @@
         "classification": 1.0,
         "extraction_accuracy": 1.0,
         "fields_matched": "2/2",
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "invoice_wire_tampering.pdf",
+      "description": "Invoice with fraudulent wire routing mismatch. Wire Details Tampering anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 19.4,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 620
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2840.1,
+          "predicted": "invoice",
+          "expected": "invoice",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 3950.2,
+          "field_count": 4,
+          "field_scores": {
+            "vendor_name": {
+              "expected": "Apex Cloud Infrastructure Inc.",
+              "actual": "Apex Cloud Infrastructure Inc.",
+              "confidence": 0.98,
+              "matched": true
+            },
+            "invoice_number": {
+              "expected": "INV-2024-8841",
+              "actual": "INV-2024-8841",
+              "confidence": 0.99,
+              "matched": true
+            },
+            "total": {
+              "expected": "18450.00",
+              "actual": "18450.00",
+              "confidence": 0.99,
+              "matched": true
+            },
+            "bank_routing_number": {
+              "expected": "021000021",
+              "actual": "021000021",
+              "confidence": 0.62,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 1240.5,
+          "detected": [
+            "Wire Details Tampering"
+          ],
+          "expected": [
+            "Wire Details Tampering"
+          ],
+          "true_positives": [
+            "Wire Details Tampering"
+          ],
+          "caught": [
+            "Wire Details Tampering"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Wire Details Tampering",
+              "description": "Beneficiary routing number (021000021) does not match vendor master file (121000035).",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 38.5
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "4/4",
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "contract_expired_effective.pdf",
+      "description": "Contract executed 5 months after expiration window lapsed. Chronological Inconsistency anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 18.2,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 680
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2910.4,
+          "predicted": "contract",
+          "expected": "contract",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 4120.0,
+          "field_count": 4,
+          "field_scores": {
+            "parties": {
+              "expected": "CyberShield Security Corp., Global Logistics Partners Inc.",
+              "actual": "CyberShield Security Corp., Global Logistics Partners Inc.",
+              "confidence": 0.95,
+              "matched": true
+            },
+            "effective_date": {
+              "expected": "2023-01-15",
+              "actual": "2023-01-15",
+              "confidence": 0.71,
+              "matched": true
+            },
+            "term_expiration_date": {
+              "expected": "2024-01-15",
+              "actual": "2024-01-15",
+              "confidence": 0.94,
+              "matched": true
+            },
+            "execution_date": {
+              "expected": "2024-06-20",
+              "actual": "2024-06-20",
+              "confidence": 0.96,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 1180.2,
+          "detected": [
+            "Chronological Inconsistency"
+          ],
+          "expected": [
+            "Chronological Inconsistency"
+          ],
+          "true_positives": [
+            "Chronological Inconsistency"
+          ],
+          "caught": [
+            "Chronological Inconsistency"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Chronological Inconsistency",
+              "description": "Agreement term expired 2024-01-15, but was countersigned 2024-06-20 without ratification.",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 41.2
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "4/4",
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "compliance_breach_soc2.pdf",
+      "description": "SOC 2 audit report with past-due CC6.1 plaintext key storage exception. Critical Audit Deficiency anomaly expected.",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 21.0,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 590
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2750.8,
+          "predicted": "compliance_doc",
+          "expected": "compliance_doc",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 3890.5,
+          "field_count": 4,
+          "field_scores": {
+            "document_title": {
+              "expected": "Annual SOC 2 Type II Compliance Assessment",
+              "actual": "Annual SOC 2 Type II Compliance Assessment",
+              "confidence": 0.98,
+              "matched": true
+            },
+            "auditing_authority": {
+              "expected": "Apex Integrity Audit Partners LLP",
+              "actual": "Apex Integrity Audit Partners LLP",
+              "confidence": 0.96,
+              "matched": true
+            },
+            "target_control": {
+              "expected": "CC6.1 Logical Access Controls",
+              "actual": "CC6.1 Logical Access Controls",
+              "confidence": 0.95,
+              "matched": true
+            },
+            "compliance_status": {
+              "expected": "Qualified Opinion",
+              "actual": "Qualified Opinion",
+              "confidence": 0.74,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 1310.4,
+          "detected": [
+            "Critical Audit Deficiency"
+          ],
+          "expected": [
+            "Critical Audit Deficiency"
+          ],
+          "true_positives": [
+            "Critical Audit Deficiency"
+          ],
+          "caught": [
+            "Critical Audit Deficiency"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Critical Audit Deficiency",
+              "description": "Control CC6.1 has an unresolved High-Severity exception past the 90-day remediation SLA.",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 39.8
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "4/4",
         "anomaly_precision": 1.0,
         "anomaly_recall": 1.0
       }

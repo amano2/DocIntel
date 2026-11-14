@@ -90,5 +90,47 @@
       "High Value PO"
     ],
     "description": "PO over $50k threshold. High Value PO anomaly expected."
+  },
+  "invoice_wire_tampering.pdf": {
+    "expected_doc_type": "invoice",
+    "expected_fields": {
+      "vendor_name": "Apex Cloud Infrastructure Inc.",
+      "invoice_number": "INV-2024-8841",
+      "total": "18450.00",
+      "bank_routing_number": "021000021"
+    },
+    "expected_anomalies": [
+      "Wire Details Tampering"
+    ],
+    "description": "Invoice with fraudulent wire routing mismatch. Wire Details Tampering anomaly expected."
+  },
+  "contract_expired_effective.pdf": {
+    "expected_doc_type": "contract",
+    "expected_fields": {
+      "parties": [
+        "CyberShield Security Corp.",
+        "Global Logistics Partners Inc."
+      ],
+      "effective_date": "2023-01-15",
+      "term_expiration_date": "2024-01-15",
+      "execution_date": "2024-06-20"
+    },
+    "expected_anomalies": [
+      "Chronological Inconsistency"
+    ],
+    "description": "Contract executed 5 months after expiration window lapsed. Chronological Inconsistency anomaly expected."
+  },
+  "compliance_breach_soc2.pdf": {
+    "expected_doc_type": "compliance_doc",
+    "expected_fields": {
+      "document_title": "Annual SOC 2 Type II Compliance Assessment",
+      "auditing_authority": "Apex Integrity Audit Partners LLP",
+      "target_control": "CC6.1 Logical Access Controls",
+      "compliance_status": "Qualified Opinion"
+    },
+    "expected_anomalies": [
+      "Critical Audit Deficiency"
+    ],
+    "description": "SOC 2 audit report with past-due CC6.1 plaintext key storage exception. Critical Audit Deficiency anomaly expected."
   }
 }

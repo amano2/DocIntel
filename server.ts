@@ -125,6 +125,30 @@ const documents: DocumentItem[] = [
     upload_time: new Date(Date.now() - 3600000 * 1).toISOString(),
     text_content: 'Purchase Order PO-2024-5599 for Precision Machining Ltd. Total amount: $65,700.00. High value threshold exceeded.',
   },
+  {
+    doc_id: 'doc-008-inv-wire',
+    filename: 'invoice_wire_tampering.pdf',
+    doc_type: 'invoice',
+    status: 'flagged',
+    upload_time: new Date(Date.now() - 3600000 * 0.7).toISOString(),
+    text_content: 'Apex Cloud Infrastructure Inc. Invoice INV-2024-8841 Date: 2024-10-02 Due: 2024-11-01 Subtotal: $18,450.00 Tax: $0.00 Total: $18,450.00 USD. Wire Routing: 021000021 (Mismatch with vendor master file routing 121000035) Account: 9948-2831-002 Beneficiary: Apex Cloud Infrastructure LLC',
+  },
+  {
+    doc_id: 'doc-009-contract-exp',
+    filename: 'contract_expired_effective.pdf',
+    doc_type: 'contract',
+    status: 'flagged',
+    upload_time: new Date(Date.now() - 3600000 * 0.4).toISOString(),
+    text_content: 'Master Cybersecurity Services Agreement MSA-CYBER-2023-09A between CyberShield Security Corp. and Global Logistics Partners Inc. Effective Date: 2023-01-15. Term: 12 months expiring 2024-01-15. Counterparts signed: June 20, 2024 (Post-expiry execution).',
+  },
+  {
+    doc_id: 'doc-010-compliance-soc2',
+    filename: 'compliance_breach_soc2.pdf',
+    doc_type: 'compliance_doc',
+    status: 'flagged',
+    upload_time: new Date(Date.now() - 3600000 * 0.1).toISOString(),
+    text_content: 'Annual SOC 2 Type II Compliance Assessment Report for CloudSphere Enterprise Corp. Audit body: Apex Integrity Audit Partners LLP. Status: Qualified Opinion - Deficiencies Noted. Control CC6.1 Logical Access Controls exception noted: Production database credentials and private keys stored unencrypted. SLA Remediation deadline August 15, 2024 past due (>90 days).',
+  },
 ];
 
 const extractedFields: ExtractedField[] = [
@@ -170,6 +194,31 @@ const extractedFields: ExtractedField[] = [
   { id: 'f-701', doc_id: 'doc-007-po-highval', field_name: 'po_number', field_value: 'PO-2024-5599', confidence: 0.98, source: 'PO Header Number' },
   { id: 'f-702', doc_id: 'doc-007-po-highval', field_name: 'vendor_name', field_value: 'Precision Machining Ltd.', confidence: 0.96, source: 'Vendor Details' },
   { id: 'f-703', doc_id: 'doc-007-po-highval', field_name: 'total_amount', field_value: '$65,700.00', confidence: 0.97, source: 'Total Authorized Line' },
+
+  // doc-008: invoice_wire_tampering.pdf
+  { id: 'f-801', doc_id: 'doc-008-inv-wire', field_name: 'vendor_name', field_value: 'Apex Cloud Infrastructure Inc.', confidence: 0.98, source: 'Header Banner, Page 1' },
+  { id: 'f-802', doc_id: 'doc-008-inv-wire', field_name: 'invoice_number', field_value: 'INV-2024-8841', confidence: 0.99, source: 'Invoice Details Block' },
+  { id: 'f-803', doc_id: 'doc-008-inv-wire', field_name: 'date', field_value: '2024-10-02', confidence: 0.96, source: 'Issue Date' },
+  { id: 'f-804', doc_id: 'doc-008-inv-wire', field_name: 'subtotal', field_value: '$18,450.00', confidence: 0.97, source: 'Summary Section' },
+  { id: 'f-805', doc_id: 'doc-008-inv-wire', field_name: 'tax', field_value: '$0.00', confidence: 0.95, source: 'Tax Line' },
+  { id: 'f-806', doc_id: 'doc-008-inv-wire', field_name: 'total', field_value: '$18,450.00', confidence: 0.99, source: 'Total Payable' },
+  { id: 'f-807', doc_id: 'doc-008-inv-wire', field_name: 'bank_routing_number', field_value: '021000021', confidence: 0.62, source: 'Wire Instructions (Mismatch)' },
+  { id: 'f-808', doc_id: 'doc-008-inv-wire', field_name: 'bank_account_number', field_value: '9948-2831-002', confidence: 0.64, source: 'Wire Remittance Account' },
+
+  // doc-009: contract_expired_effective.pdf
+  { id: 'f-901', doc_id: 'doc-009-contract-exp', field_name: 'parties', field_value: 'CyberShield Security Corp., Global Logistics Partners Inc.', confidence: 0.95, source: 'Preamble, Page 1' },
+  { id: 'f-902', doc_id: 'doc-009-contract-exp', field_name: 'agreement_reference', field_value: 'MSA-CYBER-2023-09A', confidence: 0.98, source: 'Title Block' },
+  { id: 'f-903', doc_id: 'doc-009-contract-exp', field_name: 'effective_date', field_value: '2023-01-15', confidence: 0.71, source: 'Section 1.1 Effective Date' },
+  { id: 'f-904', doc_id: 'doc-009-contract-exp', field_name: 'term_expiration_date', field_value: '2024-01-15', confidence: 0.94, source: 'Section 2.3 Expiration Window' },
+  { id: 'f-905', doc_id: 'doc-009-contract-exp', field_name: 'execution_date', field_value: '2024-06-20', confidence: 0.96, source: 'Section 14.1 Counterparts' },
+  { id: 'f-906', doc_id: 'doc-009-contract-exp', field_name: 'signature_status', field_value: 'signed (post-expiration)', confidence: 0.88, source: 'Execution Page' },
+
+  // doc-010: compliance_breach_soc2.pdf
+  { id: 'f-1001', doc_id: 'doc-010-compliance-soc2', field_name: 'document_title', field_value: 'Annual SOC 2 Type II Compliance Assessment', confidence: 0.98, source: 'Report Header' },
+  { id: 'f-1002', doc_id: 'doc-010-compliance-soc2', field_name: 'auditing_authority', field_value: 'Apex Integrity Audit Partners LLP', confidence: 0.96, source: 'Auditing Authority Block' },
+  { id: 'f-1003', doc_id: 'doc-010-compliance-soc2', field_name: 'compliance_status', field_value: 'Qualified Opinion (Deficiencies Noted)', confidence: 0.74, source: 'Executive Summary Clause 1' },
+  { id: 'f-1004', doc_id: 'doc-010-compliance-soc2', field_name: 'target_control', field_value: 'CC6.1 Logical Access Controls', confidence: 0.95, source: 'Findings Table Row 1' },
+  { id: 'f-1005', doc_id: 'doc-010-compliance-soc2', field_name: 'remediation_status', field_value: 'Past Due (>90 Days)', confidence: 0.89, source: 'Exception Detail Section' },
 ];
 
 const anomalies: Anomaly[] = [
@@ -203,6 +252,30 @@ const anomalies: Anomaly[] = [
     rule_name: 'High Value PO',
     description: 'Purchase Order amount ($65,700.00) exceeds secondary approval threshold of $50,000.00.',
     severity: 'low',
+    status: 'open',
+  },
+  {
+    id: 'an-005',
+    doc_id: 'doc-008-inv-wire',
+    rule_name: 'Wire Details Tampering',
+    description: 'Beneficiary routing number (021000021) and account number (9948-2831-002) do not match verified vendor master profile (Routing: 121000035, Account: 4410-9281-001). Potential fraudulent diversion risk.',
+    severity: 'high',
+    status: 'open',
+  },
+  {
+    id: 'an-006',
+    doc_id: 'doc-009-contract-exp',
+    rule_name: 'Chronological Inconsistency',
+    description: 'Agreement term expired on 2024-01-15, but authorized signatures were dated 2024-06-20 (5 months after term lapsed). Contract executed post-expiration without retroactive ratification clause.',
+    severity: 'high',
+    status: 'open',
+  },
+  {
+    id: 'an-007',
+    doc_id: 'doc-010-compliance-soc2',
+    rule_name: 'Critical Audit Deficiency',
+    description: 'Control CC6.1 (Cryptographic Key Storage & Plaintext Credentials) has an unresolved High-Severity exception exceeding the 90-day remediation SLA. Compliance rating downgraded to Qualified Opinion.',
+    severity: 'high',
     status: 'open',
   },
 ];

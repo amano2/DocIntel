@@ -612,6 +612,28 @@ export default function ReviewConsolePage() {
               >
                 Contracts
               </button>
+              <button
+                type="button"
+                onClick={() => setQueueFilter('purchase_order')}
+                className={`px-2 py-0.5 border uppercase font-bold shrink-0 transition-colors ${
+                  queueFilter === 'purchase_order' 
+                    ? 'border-primary bg-primary/20 text-primary' 
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                POs
+              </button>
+              <button
+                type="button"
+                onClick={() => setQueueFilter('compliance_doc')}
+                className={`px-2 py-0.5 border uppercase font-bold shrink-0 transition-colors ${
+                  queueFilter === 'compliance_doc' 
+                    ? 'border-primary bg-primary/20 text-primary' 
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Compliance
+              </button>
             </div>
           </div>
 

@@ -120,10 +120,18 @@ Handles both machine-generated text PDFs and scanned camera photos. Automaticall
 No black-box guesses. Extracted data fields return `{ field_name, field_value, confidence, source }`. Fields below threshold (< 0.80) trigger review banners for operator verification.
 
 ### 3. 🚨 Deterministic & AI Anomaly Detection
-- **Math Inconsistency:** Validates that `Subtotal + Tax = Total Amount`.
-- **Duplicate Prevention:** Flags duplicate invoice numbers within sliding batch windows.
-- **Contract Execution Validation:** Intercepts unsigned drafts missing party signatures or effective dates.
-- **Threshold Alerts:** Highlights purchase orders exceeding delegation-of-authority limits.
+- **Math Inconsistency:** Validates that `Subtotal + Tax = Total Amount` (e.g. `invoice_anomaly_math.pdf`).
+- **Duplicate Prevention:** Flags duplicate invoice numbers within sliding batch windows (e.g. `invoice_duplicate.pdf`).
+- **Wire Remittance Tampering:** Intercepts beneficiary bank routing/account numbers deviating from vendor master profiles (e.g. `invoice_wire_tampering.pdf`).
+- **Contract Execution & Chronology:** Intercepts unsigned drafts missing party signatures or agreements countersigned months after term expiration (e.g. `contract_unsigned.pdf`, `contract_expired_effective.pdf`).
+- **Compliance & Control Breaches:** Flags critical unresolved control exceptions exceeding 90-day remediation SLAs under SOC 2 and GDPR (e.g. `compliance_breach_soc2.pdf`).
+- **Threshold Alerts:** Highlights purchase orders exceeding delegation-of-authority limits (e.g. `po_high_value.pdf`).
+
+### 4. 📁 Reserve Demo Documents & Interactive Practice
+The repository includes dedicated pre-built test documents in `data/sample_docs/reserve_for_demo/` ready to be dragged and dropped into the Review Console live:
+- `DEMO_invoice_math_error.pdf`: Triggers a $400 calculation mismatch.
+- `DEMO_contract_unsigned_draft.pdf`: Triggers an unexecuted draft signature flag.
+- `DEMO_clean_po_expedited.pdf`: Demonstrates straight-through processing (STP) for nominal corporate orders.
 
 ### 4. 📜 Immutable Audit Trail
 Every field override is logged in the `audit_log` table with `previous_value`, `corrected_value`, `user_id`, and `created_at`. Human corrections automatically upgrade field confidence to `1.0`.

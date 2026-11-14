@@ -49,9 +49,11 @@ interface ChatInterfaceProps {
 const QUICK_PROMPTS = [
   { label: 'Unpaid / Due Invoices', query: 'Which invoices from vendors are unpaid or have payment terms due?' },
   { label: 'Math Discrepancies', query: 'Which invoices contain calculation or tax math discrepancies?' },
+  { label: 'Wire Details Tampering', query: 'Are there any invoices with wire transfer or bank routing mismatches?' },
   { label: 'Unsigned Contracts', query: 'Are there any contracts missing signatures or marked unsigned?' },
+  { label: 'Expired Agreements', query: 'Which contracts have expired or contain chronological date inconsistencies?' },
   { label: 'High-Value POs (> $50k)', query: 'Which purchase orders exceed the $50,000 secondary approval threshold?' },
-  { label: 'Compliance Audit Status', query: 'What is the compliance audit status for GDPR and data protection?' },
+  { label: 'SOC 2 & Compliance Deficiencies', query: 'What critical deficiencies or exceptions are flagged in compliance and SOC 2 audits?' },
 ];
 
 export default function ChatInterface({ 
