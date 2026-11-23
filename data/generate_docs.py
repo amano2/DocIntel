@@ -308,6 +308,145 @@ def build_demo_po():
     doc.build(story)
     print(f"Generated: {pdf_path}")
 
+# ── 7. Ingested Anomaly: invoice_math_quantity_mismatch.pdf ──────────────────
+def build_invoice_math_quantity_mismatch():
+    pdf_path = 'data/sample_docs/invoice_math_quantity_mismatch.pdf'
+    doc = SimpleDocTemplate(pdf_path, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    story = []
+
+    story.append(Paragraph("QUANTUM ROBOTICS & AUTOMATION CO.", header_style))
+    story.append(Paragraph("800 Tech Innovation Parkway, Suite 600, Boston, MA 02110 | Accounts: ar@quantumrobotics.io", sub_style))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#ea580c')))
+    story.append(Spacer(1, 10))
+
+    meta_data = [
+        [Paragraph("<b>Invoice Number:</b> INV-2024-9102", body_style), Paragraph("<b>Invoice Date:</b> 2024-10-18", body_style)],
+        [Paragraph("<b>Bill To:</b> Wayne Enterprises - Industrial Automation", body_style), Paragraph("<b>Payment Terms:</b> Net 30 (Due: 2024-11-17)", body_style)]
+    ]
+    meta_table = Table(meta_data, colWidths=[270, 270])
+    meta_table.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP')]))
+    story.append(meta_table)
+    story.append(Spacer(1, 14))
+
+    items_data = [
+        ["Line", "Description", "Qty", "Unit Price", "Total Amount"],
+        ["1", "Industrial Robotic Actuator Model RX-4", "40 units", "$250.00", "$12,000.00"],
+        ["2", "High-Torque Servo Driver Modules", "5 units", "$400.00", "$2,000.00"],
+        ["", "", "", "SUBTOTAL:", "$14,000.00"],
+        ["", "", "", "TAX (10.00%):", "$1,400.00"],
+        ["", "", "", "TOTAL PAYABLE:", "$15,400.00 USD"]
+    ]
+    table = Table(items_data, colWidths=[40, 260, 60, 80, 100])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f4f4f5')),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('GRID', (0,0), (-1,2), 0.5, colors.HexColor('#e4e4e7')),
+        ('FONTNAME', (3,3), (-1,-1), 'Helvetica-Bold'),
+        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),
+        ('TEXTCOLOR', (4,5), (4,5), colors.HexColor('#b91c1c')),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 14))
+    story.append(Paragraph("<b>NOTE:</b> Unit multiplication discrepancy on Line 1: 40 units @ $250.00 equals $10,000.00, but line total states $12,000.00 (+$2,000 overstatement).", sub_style))
+    doc.build(story)
+    print(f"Generated: {pdf_path}")
+
+# ── 8. Ingested Anomaly: invoice_math_tax_overcharge.pdf ─────────────────────
+def build_invoice_math_tax_overcharge():
+    pdf_path = 'data/sample_docs/invoice_math_tax_overcharge.pdf'
+    doc = SimpleDocTemplate(pdf_path, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    story = []
+
+    story.append(Paragraph("STARK DYNAMICS CLOUD INFRASTRUCTURE", header_style))
+    story.append(Paragraph("10880 Wilshire Boulevard, Suite 1200, Los Angeles, CA 90024 | Billing: finance@starkdynamics.com", sub_style))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#ea580c')))
+    story.append(Spacer(1, 10))
+
+    meta_data = [
+        [Paragraph("<b>Invoice Number:</b> INV-2024-4481", body_style), Paragraph("<b>Invoice Date:</b> 2024-10-24", body_style)],
+        [Paragraph("<b>Bill To:</b> Initech Solutions - Distributed AI Division", body_style), Paragraph("<b>Payment Terms:</b> Net 30 (Due: 2024-11-23)", body_style)]
+    ]
+    meta_table = Table(meta_data, colWidths=[270, 270])
+    meta_table.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP')]))
+    story.append(meta_table)
+    story.append(Spacer(1, 14))
+
+    items_data = [
+        ["Line", "Description", "Qty", "Unit Price", "Total Amount"],
+        ["1", "Dedicated GPU Node Pods (H100 NVLink Cluster)", "1 mo", "$22,000.00", "$22,000.00"],
+        ["2", "High-Throughput NVMe Storage Block (50 TB)", "1 mo", "$8,000.00", "$8,000.00"],
+        ["", "", "", "SUBTOTAL:", "$30,000.00"],
+        ["", "", "", "18% GST / STATE TAX:", "$7,400.00"],
+        ["", "", "", "TOTAL PAYABLE:", "$37,400.00 USD"]
+    ]
+    table = Table(items_data, colWidths=[40, 260, 60, 80, 100])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f4f4f5')),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('GRID', (0,0), (-1,2), 0.5, colors.HexColor('#e4e4e7')),
+        ('FONTNAME', (3,3), (-1,-1), 'Helvetica-Bold'),
+        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),
+        ('TEXTCOLOR', (4,4), (4,5), colors.HexColor('#b91c1c')),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 14))
+    story.append(Paragraph("<b>TAX AUDIT DEFECT:</b> 18% GST on $30,000.00 subtotal equals exactly $5,400.00. Billed tax is $7,400.00 (an unauthorized padding variance of +$2,000.00).", sub_style))
+    doc.build(story)
+    print(f"Generated: {pdf_path}")
+
+# ── 9. Reserve Demo: DEMO_invoice_hidden_surcharge.pdf ───────────────────────
+def build_demo_invoice_hidden_surcharge():
+    pdf_path = 'data/sample_docs/reserve_for_demo/DEMO_invoice_hidden_surcharge.pdf'
+    doc = SimpleDocTemplate(pdf_path, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    story = []
+
+    story.append(Paragraph("APEX GLOBAL INDUSTRIAL LOGISTICS", header_style))
+    story.append(Paragraph("500 Logistics Boulevard, Atlanta, GA 30320 | accounts@apexlogistic.com", sub_style))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#ea580c')))
+    story.append(Spacer(1, 10))
+
+    meta_data = [
+        [Paragraph("<b>Invoice Number:</b> INV-2024-DEMO-02", body_style), Paragraph("<b>Invoice Date:</b> 2024-11-15", body_style)],
+        [Paragraph("<b>Bill To:</b> Contoso Manufacturing LLC", body_style), Paragraph("<b>Payment Terms:</b> Net 30 (Due: 2024-12-15)", body_style)]
+    ]
+    meta_table = Table(meta_data, colWidths=[270, 270])
+    meta_table.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP')]))
+    story.append(meta_table)
+    story.append(Spacer(1, 14))
+
+    items_data = [
+        ["Line", "Description", "Qty", "Unit Price", "Total Amount"],
+        ["1", "Titanium Machined Fasteners (Grade 5)", "100 boxes", "$100.00", "$10,000.00"],
+        ["2", "Hydraulic Pressure Cylinders", "10 units", "$500.00", "$5,000.00"],
+        ["3", "Precision Flow Meter Assemblies", "6 units", "$500.00", "$3,000.00"],
+        ["", "", "", "STATED SUBTOTAL:", "$19,500.00"],
+        ["", "", "", "TAX (10.00%):", "$1,950.00"],
+        ["", "", "", "TOTAL DUE:", "$21,450.00 USD"]
+    ]
+    table = Table(items_data, colWidths=[40, 260, 60, 80, 100])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f4f4f5')),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('GRID', (0,0), (-1,3), 0.5, colors.HexColor('#e4e4e7')),
+        ('FONTNAME', (3,4), (-1,-1), 'Helvetica-Bold'),
+        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),
+        ('TEXTCOLOR', (4,4), (4,6), colors.HexColor('#b91c1c')),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 14))
+    story.append(Paragraph("<b>CALCULATION ERROR:</b> Line items sum to $10,000 + $5,000 + $3,000 = $18,000.00, but Subtotal states $19,500.00 (hidden +$1,500 unitemized padding).", sub_style))
+    doc.build(story)
+    print(f"Generated: {pdf_path}")
+
 if __name__ == '__main__':
     build_invoice_wire_tampering()
     build_contract_expired_effective()
@@ -315,4 +454,7 @@ if __name__ == '__main__':
     build_demo_invoice()
     build_demo_contract()
     build_demo_po()
+    build_invoice_math_quantity_mismatch()
+    build_invoice_math_tax_overcharge()
+    build_demo_invoice_hidden_surcharge()
     print("All documents generated successfully.")

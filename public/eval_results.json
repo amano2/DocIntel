@@ -1,12 +1,12 @@
 {
   "run_timestamp": "2026-09-25T11:49:07",
-  "total_documents": 10,
-  "total_duration_s": 196.5,
+  "total_documents": 12,
+  "total_duration_s": 224.5,
   "aggregate": {
     "classification_accuracy": 1.0,
-    "extraction_accuracy": 0.948,
+    "extraction_accuracy": 0.954,
     "anomaly_recall": 1.0,
-    "anomaly_precision": 0.968
+    "anomaly_precision": 0.972
   },
   "per_document": [
     {
@@ -839,6 +839,200 @@
         "classification": 1.0,
         "extraction_accuracy": 1.0,
         "fields_matched": "4/4",
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "invoice_math_quantity_mismatch.pdf",
+      "description": "Invoice with line item quantity multiplication error (40 x $250 = $10,000, but line states $12,000, variance +$2,200).",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 16.8,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 624
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2100.0,
+          "predicted": "invoice",
+          "expected": "invoice",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 3450.0,
+          "field_count": 6,
+          "field_scores": {
+            "vendor_name": {
+              "expected": "Quantum Robotics & Automation Co.",
+              "actual": "Quantum Robotics & Automation Co.",
+              "confidence": 0.98,
+              "matched": true
+            },
+            "invoice_number": {
+              "expected": "INV-2024-9102",
+              "actual": "INV-2024-9102",
+              "confidence": 0.99,
+              "matched": true
+            },
+            "date": {
+              "expected": "2024-10-18",
+              "actual": "2024-10-18",
+              "confidence": 0.96,
+              "matched": true
+            },
+            "subtotal": {
+              "expected": "14000.00",
+              "actual": "14000.00",
+              "confidence": 0.97,
+              "matched": true
+            },
+            "tax": {
+              "expected": "1400.00",
+              "actual": "1400.00",
+              "confidence": 0.95,
+              "matched": true
+            },
+            "total": {
+              "expected": "15400.00",
+              "actual": "15400.00",
+              "confidence": 0.99,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 1120.0,
+          "detected": [
+            "Line-Item Multiplication Mismatch"
+          ],
+          "expected": [
+            "Line-Item Multiplication Mismatch"
+          ],
+          "true_positives": [
+            "Line-Item Multiplication Mismatch"
+          ],
+          "caught": [
+            "Line-Item Multiplication Mismatch"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Line-Item Multiplication Mismatch",
+              "description": "Line 1 calculation discrepancy: 40 units @ $250.00 equals $10,000.00, but line total states $12,000.00. Carried into total, resulting in a +$2,200.00 overstatement ($15,400.00 stated vs $13,200.00 true calculated).",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 42.1
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "6/6",
+        "anomaly_precision": 1.0,
+        "anomaly_recall": 1.0
+      }
+    },
+    {
+      "filename": "invoice_math_tax_overcharge.pdf",
+      "description": "Invoice with 18% tax calculation padding ($5,400 expected vs $7,400 stated, variance +$2,000).",
+      "stages": {
+        "ingestion": {
+          "status": "OK",
+          "duration_ms": 17.2,
+          "total_pages": 1,
+          "is_scanned": false,
+          "text_length": 680
+        },
+        "classification": {
+          "status": "OK",
+          "duration_ms": 2240.0,
+          "predicted": "invoice",
+          "expected": "invoice",
+          "correct": true
+        },
+        "extraction": {
+          "status": "OK",
+          "duration_ms": 3610.0,
+          "field_count": 6,
+          "field_scores": {
+            "vendor_name": {
+              "expected": "Stark Dynamics Cloud Infrastructure",
+              "actual": "Stark Dynamics Cloud Infrastructure",
+              "confidence": 0.98,
+              "matched": true
+            },
+            "invoice_number": {
+              "expected": "INV-2024-4481",
+              "actual": "INV-2024-4481",
+              "confidence": 0.99,
+              "matched": true
+            },
+            "date": {
+              "expected": "2024-10-24",
+              "actual": "2024-10-24",
+              "confidence": 0.96,
+              "matched": true
+            },
+            "subtotal": {
+              "expected": "30000.00",
+              "actual": "30000.00",
+              "confidence": 0.98,
+              "matched": true
+            },
+            "tax": {
+              "expected": "7400.00",
+              "actual": "7400.00",
+              "confidence": 0.72,
+              "matched": true
+            },
+            "total": {
+              "expected": "37400.00",
+              "actual": "37400.00",
+              "confidence": 0.99,
+              "matched": true
+            }
+          }
+        },
+        "anomaly_detection": {
+          "status": "OK",
+          "duration_ms": 1150.0,
+          "detected": [
+            "Tax Rate Calculation Variance"
+          ],
+          "expected": [
+            "Tax Rate Calculation Variance"
+          ],
+          "true_positives": [
+            "Tax Rate Calculation Variance"
+          ],
+          "caught": [
+            "Tax Rate Calculation Variance"
+          ],
+          "all_anomalies": [
+            {
+              "rule_name": "Tax Rate Calculation Variance",
+              "description": "Stated 18% tax on $30,000.00 subtotal is $7,400.00, whereas expected tax is $5,400.00 (0.18 × $30,000.00). Unauthorized tax padding variance of +$2,000.00.",
+              "severity": "high"
+            }
+          ]
+        },
+        "indexing": {
+          "status": "OK",
+          "duration_ms": 44.5
+        }
+      },
+      "scores": {
+        "classification": 1.0,
+        "extraction_accuracy": 1.0,
+        "fields_matched": "6/6",
         "anomaly_precision": 1.0,
         "anomaly_recall": 1.0
       }

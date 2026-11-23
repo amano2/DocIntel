@@ -681,7 +681,11 @@ export default function ReviewConsolePage() {
           <div className="flex-1 overflow-y-auto divide-y divide-border/60">
             {filteredDocs.map((doc) => {
               const isSelected = selectedDocId === doc.doc_id;
-              const isFlagged = doc.status === 'flagged' || doc.status === 'error';
+              const isFlagged = 
+                doc.status === 'flagged' || 
+                doc.status === 'error' || 
+                (doc.doc_id === selectedDocId && openAnomalies.length > 0);
+              const isProcessing = doc.status === 'processing';
 
               return (
                 <div
@@ -700,6 +704,10 @@ export default function ReviewConsolePage() {
                     {isFlagged ? (
                       <span className="shrink-0 flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 border border-destructive/40 bg-destructive/10 text-destructive font-bold">
                         <AlertTriangle size={11} /> DEFECT
+                      </span>
+                    ) : isProcessing ? (
+                      <span className="shrink-0 flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 border border-amber-500/40 bg-amber-500/10 text-amber-400 font-bold">
+                        <Activity size={11} className="animate-spin-slow" /> PROCESSING
                       </span>
                     ) : (
                       <span className="shrink-0 flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-bold">

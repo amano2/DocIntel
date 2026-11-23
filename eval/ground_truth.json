@@ -132,5 +132,35 @@
       "Critical Audit Deficiency"
     ],
     "description": "SOC 2 audit report with past-due CC6.1 plaintext key storage exception. Critical Audit Deficiency anomaly expected."
+  },
+  "invoice_math_quantity_mismatch.pdf": {
+    "expected_doc_type": "invoice",
+    "expected_fields": {
+      "vendor_name": "Quantum Robotics & Automation Co.",
+      "invoice_number": "INV-2024-9102",
+      "date": "2024-10-18",
+      "subtotal": "14000.00",
+      "tax": "1400.00",
+      "total": "15400.00"
+    },
+    "expected_anomalies": [
+      "Line-Item Multiplication Mismatch"
+    ],
+    "description": "Invoice with line item quantity multiplication error (40 x $250 = $10,000, but line states $12,000, variance +$2,200)."
+  },
+  "invoice_math_tax_overcharge.pdf": {
+    "expected_doc_type": "invoice",
+    "expected_fields": {
+      "vendor_name": "Stark Dynamics Cloud Infrastructure",
+      "invoice_number": "INV-2024-4481",
+      "date": "2024-10-24",
+      "subtotal": "30000.00",
+      "tax": "7400.00",
+      "total": "37400.00"
+    },
+    "expected_anomalies": [
+      "Tax Rate Calculation Variance"
+    ],
+    "description": "Invoice with 18% tax calculation padding ($5,400 expected vs $7,400 stated, variance +$2,000)."
   }
 }

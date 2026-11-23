@@ -166,6 +166,24 @@ export const DEFAULT_DOCUMENTS: DocumentItem[] = [
     extracted_text: `ANNUAL SOC 2 TYPE II COMPLIANCE ASSESSMENT\nSecurity, Confidentiality & Availability Trust Services Criteria | Audit Period: Q3-Q4 2024\nAUDITING BODY: Apex Integrity Audit Partners LLP | Client: CloudSphere Enterprise Corp\nASSESSMENT STATUS: QUALIFIED OPINION — DEFICIENCIES NOTED\n\nControl Ref\nTrust Criteria\nTesting Result\nRisk Severity\nRemediation Status\nCC6.1\nLogical Access Controls\nEXCEPTION NOTED\nHIGH\nPAST DUE (>90 Days)\nCC6.6\nBoundary Protection & WAF\nOperating Nominally\nLOW\nSatisfied\nCC7.2\nSystem Monitoring & Alerting\nOperating Nominally\nLOW\nSatisfied\nA1.2\nData Backup & Recovery\nOperating Nominally\nLOW\nSatisfied\n\nCONTROL EXCEPTION DETAIL (CC6.1 - CRYPTOGRAPHIC KEY STORAGE):\nDuring auditor sample testing of 25 production microservices, auditors identified that production database credentials and API private keys were stored in unencrypted plaintext environment configurations in repository \`.env.production\` backups rather than an HSM vault. The remediation deadline of August 15, 2024 was exceeded without formal mitigation, violating SOC 2 CC6.1 criteria.`,
     text_content: `ANNUAL SOC 2 TYPE II COMPLIANCE ASSESSMENT\nSecurity, Confidentiality & Availability Trust Services Criteria | Audit Period: Q3-Q4 2024\nAUDITING BODY: Apex Integrity Audit Partners LLP | Client: CloudSphere Enterprise Corp\nASSESSMENT STATUS: QUALIFIED OPINION — DEFICIENCIES NOTED\n\nControl Ref\nTrust Criteria\nTesting Result\nRisk Severity\nRemediation Status\nCC6.1\nLogical Access Controls\nEXCEPTION NOTED\nHIGH\nPAST DUE (>90 Days)\nCC6.6\nBoundary Protection & WAF\nOperating Nominally\nLOW\nSatisfied\nCC7.2\nSystem Monitoring & Alerting\nOperating Nominally\nLOW\nSatisfied\nA1.2\nData Backup & Recovery\nOperating Nominally\nLOW\nSatisfied\n\nCONTROL EXCEPTION DETAIL (CC6.1 - CRYPTOGRAPHIC KEY STORAGE):\nDuring auditor sample testing of 25 production microservices, auditors identified that production database credentials and API private keys were stored in unencrypted plaintext environment configurations in repository \`.env.production\` backups rather than an HSM vault. The remediation deadline of August 15, 2024 was exceeded without formal mitigation, violating SOC 2 CC6.1 criteria.`,
   },
+  {
+    doc_id: 'doc-011-inv-qty-math',
+    filename: 'invoice_math_quantity_mismatch.pdf',
+    doc_type: 'invoice',
+    status: 'flagged',
+    upload_time: new Date(Date.now() - 3600000 * 0.08).toISOString(),
+    extracted_text: `QUANTUM ROBOTICS & AUTOMATION CO.\n800 Tech Innovation Parkway, Suite 600, Boston, MA 02110 | Accounts: ar@quantumrobotics.io\nInvoice Number: INV-2024-9102\nInvoice Date: 2024-10-18\nBill To: Wayne Enterprises - Industrial Automation\nPayment Terms: Net 30 (Due: 2024-11-17)\nLine\nDescription\nQty\nUnit Price\nTotal Amount\n1\nIndustrial Robotic Actuator Model RX-4\n40 units\n$250.00\n$12,000.00\n2\nHigh-Torque Servo Driver Modules\n5 units\n$400.00\n$2,000.00\nSUBTOTAL:\n$14,000.00\nTAX (10.00%):\n$1,400.00\nTOTAL PAYABLE:\n$15,400.00 USD\nNOTE: Unit multiplication discrepancy on Line 1: 40 units @ $250.00 equals $10,000.00, but line total states $12,000.00 (+$2,000 overstatement).`,
+    text_content: `QUANTUM ROBOTICS & AUTOMATION CO.\n800 Tech Innovation Parkway, Suite 600, Boston, MA 02110 | Accounts: ar@quantumrobotics.io\nInvoice Number: INV-2024-9102\nInvoice Date: 2024-10-18\nBill To: Wayne Enterprises - Industrial Automation\nPayment Terms: Net 30 (Due: 2024-11-17)\nLine\nDescription\nQty\nUnit Price\nTotal Amount\n1\nIndustrial Robotic Actuator Model RX-4\n40 units\n$250.00\n$12,000.00\n2\nHigh-Torque Servo Driver Modules\n5 units\n$400.00\n$2,000.00\nSUBTOTAL:\n$14,000.00\nTAX (10.00%):\n$1,400.00\nTOTAL PAYABLE:\n$15,400.00 USD\nNOTE: Unit multiplication discrepancy on Line 1: 40 units @ $250.00 equals $10,000.00, but line total states $12,000.00 (+$2,000 overstatement).`,
+  },
+  {
+    doc_id: 'doc-012-inv-tax-math',
+    filename: 'invoice_math_tax_overcharge.pdf',
+    doc_type: 'invoice',
+    status: 'flagged',
+    upload_time: new Date(Date.now() - 3600000 * 0.05).toISOString(),
+    extracted_text: `STARK DYNAMICS CLOUD INFRASTRUCTURE\n10880 Wilshire Boulevard, Suite 1200, Los Angeles, CA 90024 | Billing: finance@starkdynamics.com\nInvoice Number: INV-2024-4481\nInvoice Date: 2024-10-24\nBill To: Initech Solutions - Distributed AI Division\nPayment Terms: Net 30 (Due: 2024-11-23)\nLine\nDescription\nQty\nUnit Price\nTotal Amount\n1\nDedicated GPU Node Pods (H100 NVLink Cluster)\n1 mo\n$22,000.00\n$22,000.00\n2\nHigh-Throughput NVMe Storage Block (50 TB)\n1 mo\n$8,000.00\n$8,000.00\nSUBTOTAL:\n$30,000.00\n18% GST / STATE TAX:\n$7,400.00\nTOTAL PAYABLE:\n$37,400.00 USD\nTAX AUDIT DEFECT: 18% GST on $30,000.00 subtotal equals exactly $5,400.00. Billed tax is $7,400.00 (an unauthorized padding variance of +$2,000.00).`,
+    text_content: `STARK DYNAMICS CLOUD INFRASTRUCTURE\n10880 Wilshire Boulevard, Suite 1200, Los Angeles, CA 90024 | Billing: finance@starkdynamics.com\nInvoice Number: INV-2024-4481\nInvoice Date: 2024-10-24\nBill To: Initech Solutions - Distributed AI Division\nPayment Terms: Net 30 (Due: 2024-11-23)\nLine\nDescription\nQty\nUnit Price\nTotal Amount\n1\nDedicated GPU Node Pods (H100 NVLink Cluster)\n1 mo\n$22,000.00\n$22,000.00\n2\nHigh-Throughput NVMe Storage Block (50 TB)\n1 mo\n$8,000.00\n$8,000.00\nSUBTOTAL:\n$30,000.00\n18% GST / STATE TAX:\n$7,400.00\nTOTAL PAYABLE:\n$37,400.00 USD\nTAX AUDIT DEFECT: 18% GST on $30,000.00 subtotal equals exactly $5,400.00. Billed tax is $7,400.00 (an unauthorized padding variance of +$2,000.00).`,
+  },
 ];
 
 export const DEFAULT_FIELDS: ExtractedField[] = [
@@ -236,6 +254,26 @@ export const DEFAULT_FIELDS: ExtractedField[] = [
   { id: 'f-1003', doc_id: 'doc-010-compliance-soc2', field_name: 'compliance_status', field_value: 'Qualified Opinion (Deficiencies Noted)', confidence: 0.74, source: 'Executive Summary Clause 1' },
   { id: 'f-1004', doc_id: 'doc-010-compliance-soc2', field_name: 'target_control', field_value: 'CC6.1 Logical Access Controls', confidence: 0.95, source: 'Findings Table Row 1' },
   { id: 'f-1005', doc_id: 'doc-010-compliance-soc2', field_name: 'remediation_status', field_value: 'Past Due (>90 Days)', confidence: 0.89, source: 'Exception Detail Section' },
+
+  // doc-011
+  { id: 'f-1101', doc_id: 'doc-011-inv-qty-math', field_name: 'vendor_name', field_value: 'Quantum Robotics & Automation Co.', confidence: 0.98, source: 'Header Banner, Page 1' },
+  { id: 'f-1102', doc_id: 'doc-011-inv-qty-math', field_name: 'invoice_number', field_value: 'INV-2024-9102', confidence: 0.99, source: 'Invoice Details Block' },
+  { id: 'f-1103', doc_id: 'doc-011-inv-qty-math', field_name: 'date', field_value: '2024-10-18', confidence: 0.96, source: 'Issue Date' },
+  { id: 'f-1104', doc_id: 'doc-011-inv-qty-math', field_name: 'subtotal', field_value: '$14,000.00', confidence: 0.97, source: 'Summary Section' },
+  { id: 'f-1105', doc_id: 'doc-011-inv-qty-math', field_name: 'tax', field_value: '$1,400.00', confidence: 0.95, source: 'Tax Line (10.00%)' },
+  { id: 'f-1106', doc_id: 'doc-011-inv-qty-math', field_name: 'total', field_value: '$15,400.00', confidence: 0.99, source: 'Total Payable' },
+  { id: 'f-1107', doc_id: 'doc-011-inv-qty-math', field_name: 'line_item_1', field_value: 'Industrial Robotic Actuator Model RX-4 (40 units @ $250.00 = $12,000.00 stated)', confidence: 0.88, source: 'Line Items Table (Row 1 Math Error)' },
+  { id: 'f-1108', doc_id: 'doc-011-inv-qty-math', field_name: 'line_item_2', field_value: 'High-Torque Servo Driver Modules (5 units @ $400.00 = $2,000.00)', confidence: 0.95, source: 'Line Items Table (Row 2)' },
+
+  // doc-012
+  { id: 'f-1201', doc_id: 'doc-012-inv-tax-math', field_name: 'vendor_name', field_value: 'Stark Dynamics Cloud Infrastructure', confidence: 0.98, source: 'Header Banner, Page 1' },
+  { id: 'f-1202', doc_id: 'doc-012-inv-tax-math', field_name: 'invoice_number', field_value: 'INV-2024-4481', confidence: 0.99, source: 'Invoice Details Block' },
+  { id: 'f-1203', doc_id: 'doc-012-inv-tax-math', field_name: 'date', field_value: '2024-10-24', confidence: 0.96, source: 'Issue Date' },
+  { id: 'f-1204', doc_id: 'doc-012-inv-tax-math', field_name: 'subtotal', field_value: '$30,000.00', confidence: 0.98, source: 'Summary Section' },
+  { id: 'f-1205', doc_id: 'doc-012-inv-tax-math', field_name: 'tax', field_value: '$7,400.00', confidence: 0.72, source: '18% GST / State Tax Line (Discrepancy)' },
+  { id: 'f-1206', doc_id: 'doc-012-inv-tax-math', field_name: 'total', field_value: '$37,400.00', confidence: 0.99, source: 'Total Payable' },
+  { id: 'f-1207', doc_id: 'doc-012-inv-tax-math', field_name: 'line_item_1', field_value: 'Dedicated GPU Node Pods (H100 NVLink Cluster) - $22,000.00', confidence: 0.96, source: 'Line Items Table (Row 1)' },
+  { id: 'f-1208', doc_id: 'doc-012-inv-tax-math', field_name: 'line_item_2', field_value: 'High-Throughput NVMe Storage Block (50 TB) - $8,000.00', confidence: 0.95, source: 'Line Items Table (Row 2)' },
 ];
 
 export const DEFAULT_ANOMALIES: Anomaly[] = [
@@ -295,6 +333,22 @@ export const DEFAULT_ANOMALIES: Anomaly[] = [
     severity: 'high',
     status: 'open',
   },
+  {
+    id: 'an-008',
+    doc_id: 'doc-011-inv-qty-math',
+    rule_name: 'Line-Item Multiplication Mismatch',
+    description: 'Line 1 calculation discrepancy: 40 units @ $250.00 equals $10,000.00, but line total states $12,000.00. Carried into total, resulting in a +$2,200.00 overstatement ($15,400.00 stated vs $13,200.00 true calculated).',
+    severity: 'high',
+    status: 'open',
+  },
+  {
+    id: 'an-009',
+    doc_id: 'doc-012-inv-tax-math',
+    rule_name: 'Tax Rate Calculation Variance',
+    description: 'Stated 18% tax on $30,000.00 subtotal is $7,400.00, whereas expected tax is $5,400.00 (0.18 × $30,000.00). Unauthorized tax padding variance of +$2,000.00.',
+    severity: 'high',
+    status: 'open',
+  },
 ];
 
 /**
@@ -323,10 +377,18 @@ export async function getDocuments(userId?: string): Promise<DocumentItem[]> {
     if (userId) {
       await seedUserIfEmpty(userId);
     }
-    const { data } = await supabase
-      .from('documents')
-      .select('*')
-      .order('upload_time', { ascending: false });
+    const [{ data }, { data: openAnomalies }] = await Promise.all([
+      supabase
+        .from('documents')
+        .select('*')
+        .order('upload_time', { ascending: false }),
+      supabase
+        .from('anomalies')
+        .select('doc_id')
+        .eq('status', 'open'),
+    ]);
+
+    const openDocIds = new Set((openAnomalies || []).map((a: any) => a.doc_id));
 
     const docList = (data && data.length > 0) ? [...(data as DocumentItem[])] : [...DEFAULT_DOCUMENTS];
 
@@ -347,7 +409,7 @@ export async function getDocuments(userId?: string): Promise<DocumentItem[]> {
       }
     });
 
-    // Normalize all docs in the list
+    // Normalize all docs in the list and reconcile status if anomalies are open
     docList.forEach((d) => {
       const def = DEFAULT_DOCUMENTS.find(
         (df) => df.doc_id === d.doc_id || df.filename.toLowerCase() === d.filename.toLowerCase()
@@ -355,6 +417,11 @@ export async function getDocuments(userId?: string): Promise<DocumentItem[]> {
       const text = d.extracted_text || d.text_content || def?.extracted_text || def?.text_content || '';
       d.extracted_text = text;
       d.text_content = text;
+
+      // If document has open anomalies in the anomalies table, ensure status reflects 'flagged'
+      if (openDocIds.has(d.doc_id) || (def && def.status === 'flagged' && d.status !== 'completed')) {
+        d.status = 'flagged';
+      }
     });
 
     return docList;
@@ -880,6 +947,7 @@ export async function uploadAndProcessDocument(
   onProgress({ stage: 'INDEXING', percent: 95, label: 'Vectorizing chunks and syncing personal document index...' });
   await new Promise((r) => setTimeout(r, 400));
 
+  const hasAnomaly = anomaliesToInsert.length > 0;
   await supabase
     .from('documents')
     .update({ status: hasAnomaly ? 'flagged' : 'completed' })
