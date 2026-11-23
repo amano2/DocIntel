@@ -160,9 +160,21 @@ export function synthesizeRAGAnswer(
   const isExpiredOrChronologyQuery = lowerQuery.includes('expired') || lowerQuery.includes('expiration') || lowerQuery.includes('chronolog') || lowerQuery.includes('lapsed') || lowerQuery.includes('post-expiration') || lowerQuery.includes('retroactive');
   const isSOC2OrDeficiencyQuery = lowerQuery.includes('soc') || lowerQuery.includes('soc2') || lowerQuery.includes('deficiency') || lowerQuery.includes('breach') || lowerQuery.includes('crypto') || lowerQuery.includes('plaintext') || lowerQuery.includes('cc6.1') || lowerQuery.includes('qualified opinion');
   const isUnsignedQuery = lowerQuery.includes('unsigned') || lowerQuery.includes('missing signature') || lowerQuery.includes('draft') || lowerQuery.includes('not signed') || lowerQuery.includes('unexecuted');
-  const isContractQuery = isUnsignedQuery || isExpiredOrChronologyQuery || lowerQuery.includes('contract') || lowerQuery.includes('agreement') || lowerQuery.includes('parties') || lowerQuery.includes('governing law') || lowerQuery.includes('term') || lowerQuery.includes('msa');
-  const isInvoiceQuery = isWireQuery || lowerQuery.includes('invoice') || lowerQuery.includes('bill') || lowerQuery.includes('unpaid') || lowerQuery.includes('due') || lowerQuery.includes('payment terms') || lowerQuery.includes('net 30');
+  const isInvoiceQuery = isWireQuery || lowerQuery.includes('invoice') || lowerQuery.includes('bill') || lowerQuery.includes('unpaid') || lowerQuery.includes('due') || lowerQuery.includes('payment term') || lowerQuery.includes('net 30');
   const isFinancialTotalQuery = lowerQuery.includes('total') || lowerQuery.includes('subtotal') || lowerQuery.includes('tax') || lowerQuery.includes('amount') || lowerQuery.includes('price') || lowerQuery.includes('cost') || lowerQuery.includes('how much');
+  const isContractQuery = !lowerQuery.includes('invoice') && !lowerQuery.includes('bill') && !lowerQuery.includes('due date') && (
+    isUnsignedQuery ||
+    isExpiredOrChronologyQuery ||
+    lowerQuery.includes('contract') ||
+    lowerQuery.includes('agreement') ||
+    lowerQuery.includes('parties') ||
+    lowerQuery.includes('governing law') ||
+    lowerQuery.includes('jurisdiction') ||
+    lowerQuery.includes('msa') ||
+    lowerQuery.includes('contract term') ||
+    lowerQuery.includes('initial term') ||
+    lowerQuery.includes('renewal term')
+  );
   const isPOQuery = lowerQuery.includes('purchase order') || lowerQuery.includes('po') || lowerQuery.includes('50,000') || lowerQuery.includes('50000') || lowerQuery.includes('threshold') || lowerQuery.includes('machining') || lowerQuery.includes('approval');
   const isComplianceQuery = isSOC2OrDeficiencyQuery || lowerQuery.includes('compliance') || lowerQuery.includes('gdpr') || lowerQuery.includes('audit') || lowerQuery.includes('soc') || lowerQuery.includes('deadline') || lowerQuery.includes('regulation') || lowerQuery.includes('dpia');
 
@@ -471,15 +483,32 @@ export function synthesizeRAGAnswer(
     const invoices = documents.filter((d) => d.doc_type === 'invoice');
     finalSelectedDocs = invoices.length > 0 ? invoices : matchedDocs;
 
-    answer = `### 💵 Invoiced Financial Summary & Due Dates\n\n`;
-    answer += `| Document | Vendor | Invoice # | Date | Payment Terms | Stated Total | Status |\n`;
-    answer += `| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+    answer = `### 💵 Invoiced Financial Summary, Due Dates & Payment Terms\n\n`;
+    answer += `Scanned all active invoices across your corpus to summarize billing schedules, credit terms, and total amounts payable:\n\n`;
+    answer += `| Document | Vendor | Invoice # | Issue Date | Due Date | Payment Terms | Stated Total | Status |\n`;
+    answer += `| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n`;
 
     finalSelectedDocs.forEach((inv) => {
       const fields = inv.fields || [];
       const vendor = fields.find((f) => f.field_name === 'vendor_name')?.field_value || inv.filename;
       const invNum = fields.find((f) => f.field_name === 'invoice_number')?.field_value || 'N/A';
-      const date = fields.find((f) => f.field_name === 'date')?.field_value || 'N/A';
+      const date = fields.find((f) => f.field_name === 'date' || f.field_name === 'invoice_date')?.field_value || 'N/A';
+      
+      let dueDate = fields.find((f) => f.field_name === 'due_date' || f.field_name === 'payment_due_date')?.field_value;
+      if (!dueDate) {
+        const text = (inv.extracted_text || inv.text_content || '');
+        const dueMatch = text.match(/Due(?:\s+Date)?:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i);
+        if (dueMatch) {
+          dueDate = dueMatch[1];
+        } else if (date !== 'N/A' && date.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) {
+          const d = new Date(date);
+          d.setDate(d.getDate() + 30);
+          dueDate = d.toISOString().split('T')[0];
+        } else {
+          dueDate = 'Net 30 from issue';
+        }
+      }
+
       const terms = fields.find((f) => f.field_name === 'payment_terms')?.field_value || 'Net 30';
       const totalVal = fields.find((f) => f.field_name === 'total' || f.field_name === 'total_amount')?.field_value;
       const totNum = parseCurrency(totalVal);
@@ -487,9 +516,9 @@ export function synthesizeRAGAnswer(
 
       const docAnoms = allAnomalies.filter((a) => a.doc_id === inv.doc_id && a.status === 'open');
       const hasAnomaly = docAnoms.length > 0;
-      const statusBadge = hasAnomaly ? `⚠️ ${docAnoms[0].rule_name}` : '✓ Verified Clean';
+      const statusBadge = hasAnomaly ? `⚠️ Flagged (${docAnoms[0].rule_name})` : '✓ Verified Clean';
 
-      answer += `| \`${inv.filename}\` | ${vendor} | ${invNum} | ${date} | ${terms} | **${statedTotal}** | ${statusBadge} |\n`;
+      answer += `| \`${inv.filename}\` | ${vendor} | ${invNum} | ${date} | **${dueDate}** | ${terms} | **${statedTotal}** | ${statusBadge} |\n`;
     });
   }
 
